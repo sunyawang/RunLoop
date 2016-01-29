@@ -2,14 +2,14 @@
  * Copyright (c) 2014 Apple Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- *
+ * 
  * This file contains Original Code and/or Modifications of Original Code
  * as defined in and that are subject to the Apple Public Source License
  * Version 2.0 (the 'License'). You may not use this file except in
  * compliance with the License. Please obtain a copy of the License at
  * http://www.opensource.apple.com/apsl/ and read it before using this
  * file.
- *
+ * 
  * The Original Code and all software distributed under the License are
  * distributed on an 'AS IS' basis, WITHOUT WARRANTY OF ANY KIND, EITHER
  * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
@@ -17,14 +17,14 @@
  * FITNESS FOR A PARTICULAR PURPOSE, QUIET ENJOYMENT OR NON-INFRINGEMENT.
  * Please see the License for the specific language governing rights and
  * limitations under the License.
- *
+ * 
  * @APPLE_LICENSE_HEADER_END@
  */
 
 /*	CFRunLoop.c
 	Copyright (c) 1998-2013, Apple Inc. All rights reserved.
 	Responsibility: Tony Parker
- */
+*/
 
 #include <CoreFoundation/CFRunLoop.h>
 #include <CoreFoundation/CFSet.h>
@@ -67,7 +67,7 @@ DISPATCH_EXPORT void _dispatch_main_queue_callback_4CF(void);
 #define _dispatch_get_main_queue_port_4CF _dispatch_get_main_queue_handle_4CF
 #define _dispatch_main_queue_callback_4CF(x) _dispatch_main_queue_callback_4CF()
 
-#define AbsoluteTime LARGE_INTEGER
+#define AbsoluteTime LARGE_INTEGER 
 
 #endif
 
@@ -180,7 +180,7 @@ CF_PRIVATE CFArrayRef __CFStopAllThreads(void) {
     mach_port_t my_thread = mach_thread_self();
     thread_act_array_t thr_list = 0;
     mach_msg_type_number_t thr_cnt = 0;
-    
+
     // really, should loop doing the stopping until no more threads get added to the list N times in a row
     kern_return_t ret = task_threads(my_task, &thr_list, &thr_cnt);
     if (ret == KERN_SUCCESS) {
@@ -217,23 +217,23 @@ static void foo() {
     uint32_t pcnt = __CFGetProcessPortCount();
     if (__CF_last_warned_port_count + 1000 < pcnt) {
         CFArrayRef threads = __CFStopAllThreads();
-        
-        
-        // do stuff here
-        CFOptionFlags responseFlags = 0;
-        SInt32 result = CFUserNotificationDisplayAlert(0.0, kCFUserNotificationCautionAlertLevel, NULL, NULL, NULL, CFSTR("High Mach Port Usage"), CFSTR("This application is using a lot of Mach ports."), CFSTR("Default"), CFSTR("Altern"), CFSTR("Other b"), &responseFlags);
-        if (0 != result) {
-            CFLog(3, CFSTR("ERROR"));
-        } else {
-            switch (responseFlags) {
-                case kCFUserNotificationDefaultResponse: CFLog(3, CFSTR("DefaultR")); break;
-                case kCFUserNotificationAlternateResponse: CFLog(3, CFSTR("AltR")); break;
-                case kCFUserNotificationOtherResponse: CFLog(3, CFSTR("OtherR")); break;
-                case kCFUserNotificationCancelResponse: CFLog(3, CFSTR("CancelR")); break;
-            }
-        }
-        
-        
+
+
+// do stuff here
+CFOptionFlags responseFlags = 0;
+SInt32 result = CFUserNotificationDisplayAlert(0.0, kCFUserNotificationCautionAlertLevel, NULL, NULL, NULL, CFSTR("High Mach Port Usage"), CFSTR("This application is using a lot of Mach ports."), CFSTR("Default"), CFSTR("Altern"), CFSTR("Other b"), &responseFlags);
+if (0 != result) {
+    CFLog(3, CFSTR("ERROR"));
+} else {
+    switch (responseFlags) {
+    case kCFUserNotificationDefaultResponse: CFLog(3, CFSTR("DefaultR")); break;
+    case kCFUserNotificationAlternateResponse: CFLog(3, CFSTR("AltR")); break;
+    case kCFUserNotificationOtherResponse: CFLog(3, CFSTR("OtherR")); break;
+    case kCFUserNotificationCancelResponse: CFLog(3, CFSTR("CancelR")); break;
+    }
+}
+
+
         __CFRestartAllThreads(threads);
         CFRelease(threads);
         __CF_last_warned_port_count = pcnt;
@@ -254,15 +254,15 @@ static __CFPort __CFPortAllocate(void) {
     if (KERN_SUCCESS != ret) {
         char msg[256];
         snprintf(msg, 256, "*** The system has no mach ports available. You may be able to diagnose which application(s) are using ports by using 'top' or Activity Monitor. (%d) ***", ret);
-        CRSetCrashLogMessage(msg);
-        __THE_SYSTEM_HAS_NO_PORTS_AVAILABLE__(ret);
+        CRSetCrashLogMessage(msg); 
+        __THE_SYSTEM_HAS_NO_PORTS_AVAILABLE__(ret); 
         return CFPORT_NULL;
     }
-    
+
     ret = mach_port_insert_right(mach_task_self(), result, result, MACH_MSG_TYPE_MAKE_SEND);
     if (KERN_SUCCESS != ret) CRASH("*** Unable to set send right on mach port. (%d) ***", ret);
-    
-    
+
+
     mach_port_limits_t limits;
     limits.mpl_qlimit = 1;
     ret = mach_port_set_attributes(mach_task_self(), result, MACH_PORT_LIMITS_INFO, (mach_port_info_t)&limits, MACH_PORT_LIMITS_INFO_COUNT);
@@ -303,7 +303,7 @@ CF_INLINE void __CFPortSetFree(__CFPortSet portSet) {
     kern_return_t ret;
     mach_port_name_array_t array;
     mach_msg_type_number_t idx, number;
-    
+
     ret = mach_port_get_set_status(mach_task_self(), portSet, &array, &number);
     if (KERN_SUCCESS == ret) {
         for (idx = 0; idx < number; idx++) {
@@ -354,13 +354,13 @@ static __CFPort *__CFPortSetGetPorts(__CFPortSet portSet, __CFPort *portBuf, uin
     __CFSpinLock(&(portSet->lock));
     __CFPort *result = portBuf;
     if (bufSize < portSet->used)
-        result = (__CFPort *)CFAllocatorAllocate(kCFAllocatorSystemDefault, portSet->used * sizeof(HANDLE), 0);
+	result = (__CFPort *)CFAllocatorAllocate(kCFAllocatorSystemDefault, portSet->used * sizeof(HANDLE), 0);
     if (portSet->used > 1) {
-        // rotate the ports to vaguely simulate round-robin behaviour
-        uint16_t lastPort = portSet->used - 1;
-        HANDLE swapHandle = portSet->handles[0];
-        memmove(portSet->handles, &portSet->handles[1], lastPort * sizeof(HANDLE));
-        portSet->handles[lastPort] = swapHandle;
+	// rotate the ports to vaguely simulate round-robin behaviour
+	uint16_t lastPort = portSet->used - 1;
+	HANDLE swapHandle = portSet->handles[0];
+	memmove(portSet->handles, &portSet->handles[1], lastPort * sizeof(HANDLE));
+	portSet->handles[lastPort] = swapHandle;
     }
     memmove(result, portSet->handles, portSet->used * sizeof(HANDLE));
     *portsUsed = portSet->used;
@@ -523,15 +523,14 @@ typedef struct __CFRunLoopMode *CFRunLoopModeRef;
 struct __CFRunLoopMode {
     CFRuntimeBase _base;
     pthread_mutex_t _lock;	/* must have the run loop locked before locking this */
-    CFStringRef _name;   //mode名称
-    Boolean _stopped;    //mode是否被终止
+    CFStringRef _name;
+    Boolean _stopped;
     char _padding[3];
-    //几种事件
-    CFMutableSetRef _sources0;  //sources0
-    CFMutableSetRef _sources1;  //sources1
-    CFMutableArrayRef _observers; //通知
-    CFMutableArrayRef _timers;    //定时器
-    CFMutableDictionaryRef _portToV1SourceMap; //字典  key是mach_port_t，value是CFRunLoopSourceRef
+    CFMutableSetRef _sources0;
+    CFMutableSetRef _sources1;
+    CFMutableArrayRef _observers;
+    CFMutableArrayRef _timers;
+    CFMutableDictionaryRef _portToV1SourceMap;
     __CFPortSet _portSet;
     CFIndex _observerMask;
 #if USE_DISPATCH_SOURCE_FOR_TIMERS
@@ -637,15 +636,15 @@ typedef struct _per_run_data {
 struct __CFRunLoop {
     CFRuntimeBase _base;
     pthread_mutex_t _lock;			/* locked for accessing mode list */
-    __CFPort _wakeUpPort;			// used for CFRunLoopWakeUp 内核向该端口发送消息可以唤醒runloop
+    __CFPort _wakeUpPort;			// used for CFRunLoopWakeUp 
     Boolean _unused;
     volatile _per_run_data *_perRunData;              // reset for runs of the run loop
     pthread_t _pthread;
     uint32_t _winthread;
-    CFMutableSetRef _commonModes;    //存储的是字符串
+    CFMutableSetRef _commonModes;
     CFMutableSetRef _commonModeItems;
     CFRunLoopModeRef _currentMode;
-    CFMutableSetRef _modes;          //存储的是CFRunLoopModeRef
+    CFMutableSetRef _modes;
     struct _block_item *_blocks_head;
     struct _block_item *_blocks_tail;
     CFTypeRef _counterpart;
@@ -674,7 +673,6 @@ CF_INLINE Boolean __CFRunLoopIsStopped(CFRunLoopRef rl) {
     return (rl->_perRunData->stopped) ? true : false;
 }
 
-//设置runloop为终止状态
 CF_INLINE void __CFRunLoopSetStopped(CFRunLoopRef rl) {
     rl->_perRunData->stopped = 0x53544F50;	// 'STOP'
 }
@@ -683,17 +681,14 @@ CF_INLINE void __CFRunLoopUnsetStopped(CFRunLoopRef rl) {
     rl->_perRunData->stopped = 0x0;
 }
 
-//判断是否是唤醒状态，如果ignoreWakeUps指向0x0，则返回false
 CF_INLINE Boolean __CFRunLoopIsIgnoringWakeUps(CFRunLoopRef rl) {
-    return (rl->_perRunData->ignoreWakeUps) ? true : false;
+    return (rl->_perRunData->ignoreWakeUps) ? true : false;    
 }
 
-//设置runloop为唤醒状态
 CF_INLINE void __CFRunLoopSetIgnoreWakeUps(CFRunLoopRef rl) {
     rl->_perRunData->ignoreWakeUps = 0x57414B45; // 'WAKE'
 }
 
-//设置为休眠状态
 CF_INLINE void __CFRunLoopUnsetIgnoreWakeUps(CFRunLoopRef rl) {
     rl->_perRunData->ignoreWakeUps = 0x0;
 }
@@ -756,34 +751,25 @@ CF_INLINE void __CFRunLoopLockInit(pthread_mutex_t *lock) {
 }
 
 /* call with rl locked, returns mode locked */
-//查找某个Mode，没有则根据create参数决定是否创建
 static CFRunLoopModeRef __CFRunLoopFindMode(CFRunLoopRef rl, CFStringRef modeName, Boolean create) {
     CHECK_FOR_FORK();
     CFRunLoopModeRef rlm;
-    //声明一个__CFRunLoopMode 并把name赋值为传入的modeName
     struct __CFRunLoopMode srlm;
-    //把srlm中的所有字节都替换为0，也就是对srlm进行清零操作
     memset(&srlm, 0, sizeof(srlm));
     _CFRuntimeSetInstanceTypeIDAndIsa(&srlm, __kCFRunLoopModeTypeID);
     srlm._name = modeName;
-    //从modes中查找
     rlm = (CFRunLoopModeRef)CFSetGetValue(rl->_modes, &srlm);
     if (NULL != rlm) {
-        //标记mode为lock状态并返回
-        __CFRunLoopModeLock(rlm);
-        return rlm;
+	__CFRunLoopModeLock(rlm);
+	return rlm;
     }
     if (!create) {
-        return NULL;
+	return NULL;
     }
-    //如果在modes中没有找到对应name的mode，并且调用者传入true，则走下面的逻辑创建一个新的mode
-    
-    //初始化rlm
     rlm = (CFRunLoopModeRef)_CFRuntimeCreateInstance(kCFAllocatorSystemDefault, __kCFRunLoopModeTypeID, sizeof(struct __CFRunLoopMode) - sizeof(CFRuntimeBase), NULL);
     if (NULL == rlm) {
-        return NULL;
+	return NULL;
     }
-    //对结构体中的各项进行赋值
     __CFRunLoopLockInit(&rlm->_lock);
     rlm->_name = CFStringCreateCopy(kCFAllocatorSystemDefault, modeName);
     rlm->_stopped = false;
@@ -831,7 +817,6 @@ static CFRunLoopModeRef __CFRunLoopFindMode(CFRunLoopRef rl, CFStringRef modeNam
     rlm->_msgQMask = 0;
     rlm->_msgPump = NULL;
 #endif
-    //把新创建的mode加入到runloop的modes数组中
     CFSetAddValue(rl->_modes, rlm);
     CFRelease(rlm);
     __CFRunLoopModeLock(rlm);	/* return mode locked */
@@ -870,15 +855,15 @@ static Boolean __CFRunLoopModeIsEmpty(CFRunLoopRef rl, CFRunLoopModeRef rlm, CFR
 
 uint32_t _CFRunLoopGetWindowsMessageQueueMask(CFRunLoopRef rl, CFStringRef modeName) {
     if (modeName == kCFRunLoopCommonModes) {
-        CFLog(kCFLogLevelError, CFSTR("_CFRunLoopGetWindowsMessageQueueMask: kCFRunLoopCommonModes unsupported"));
-        HALT;
+	CFLog(kCFLogLevelError, CFSTR("_CFRunLoopGetWindowsMessageQueueMask: kCFRunLoopCommonModes unsupported"));
+	HALT;
     }
     DWORD result = 0;
     __CFRunLoopLock(rl);
     CFRunLoopModeRef rlm = __CFRunLoopFindMode(rl, modeName, false);
     if (rlm) {
-        result = rlm->_msgQMask;
-        __CFRunLoopModeUnlock(rlm);
+	result = rlm->_msgQMask;
+	__CFRunLoopModeUnlock(rlm);
     }
     __CFRunLoopUnlock(rl);
     return (uint32_t)result;
@@ -886,8 +871,8 @@ uint32_t _CFRunLoopGetWindowsMessageQueueMask(CFRunLoopRef rl, CFStringRef modeN
 
 void _CFRunLoopSetWindowsMessageQueueMask(CFRunLoopRef rl, uint32_t mask, CFStringRef modeName) {
     if (modeName == kCFRunLoopCommonModes) {
-        CFLog(kCFLogLevelError, CFSTR("_CFRunLoopSetWindowsMessageQueueMask: kCFRunLoopCommonModes unsupported"));
-        HALT;
+	CFLog(kCFLogLevelError, CFSTR("_CFRunLoopSetWindowsMessageQueueMask: kCFRunLoopCommonModes unsupported"));
+	HALT;
     }
     __CFRunLoopLock(rl);
     CFRunLoopModeRef rlm = __CFRunLoopFindMode(rl, modeName, true);
@@ -902,19 +887,19 @@ uint32_t _CFRunLoopGetWindowsThreadID(CFRunLoopRef rl) {
 
 CFWindowsMessageQueueHandler _CFRunLoopGetWindowsMessageQueueHandler(CFRunLoopRef rl, CFStringRef modeName) {
     if (modeName == kCFRunLoopCommonModes) {
-        CFLog(kCFLogLevelError, CFSTR("_CFRunLoopGetWindowsMessageQueueMask: kCFRunLoopCommonModes unsupported"));
-        HALT;
+	CFLog(kCFLogLevelError, CFSTR("_CFRunLoopGetWindowsMessageQueueMask: kCFRunLoopCommonModes unsupported"));
+	HALT;
     }
     if (rl != CFRunLoopGetCurrent()) {
-        CFLog(kCFLogLevelError, CFSTR("_CFRunLoopGetWindowsMessageQueueHandler: run loop parameter must be the current run loop"));
-        HALT;
+	CFLog(kCFLogLevelError, CFSTR("_CFRunLoopGetWindowsMessageQueueHandler: run loop parameter must be the current run loop"));
+	HALT;
     }
     void (*result)(void) = NULL;
     __CFRunLoopLock(rl);
     CFRunLoopModeRef rlm = __CFRunLoopFindMode(rl, modeName, false);
     if (rlm) {
-        result = rlm->_msgPump;
-        __CFRunLoopModeUnlock(rlm);
+	result = rlm->_msgPump;
+	__CFRunLoopModeUnlock(rlm);
     }
     __CFRunLoopUnlock(rl);
     return result;
@@ -922,12 +907,12 @@ CFWindowsMessageQueueHandler _CFRunLoopGetWindowsMessageQueueHandler(CFRunLoopRe
 
 void _CFRunLoopSetWindowsMessageQueueHandler(CFRunLoopRef rl, CFStringRef modeName, CFWindowsMessageQueueHandler func) {
     if (modeName == kCFRunLoopCommonModes) {
-        CFLog(kCFLogLevelError, CFSTR("_CFRunLoopGetWindowsMessageQueueMask: kCFRunLoopCommonModes unsupported"));
-        HALT;
+	CFLog(kCFLogLevelError, CFSTR("_CFRunLoopGetWindowsMessageQueueMask: kCFRunLoopCommonModes unsupported"));
+	HALT;
     }
     if (rl != CFRunLoopGetCurrent()) {
-        CFLog(kCFLogLevelError, CFSTR("_CFRunLoopGetWindowsMessageQueueHandler: run loop parameter must be the current run loop"));
-        HALT;
+	CFLog(kCFLogLevelError, CFSTR("_CFRunLoopGetWindowsMessageQueueHandler: run loop parameter must be the current run loop"));
+	HALT;
     }
     __CFRunLoopLock(rl);
     CFRunLoopModeRef rlm = __CFRunLoopFindMode(rl, modeName, true);
@@ -943,17 +928,14 @@ void _CFRunLoopSetWindowsMessageQueueHandler(CFRunLoopRef rl, CFStringRef modeNa
 
 /* Bit 3 in the base reserved bits is used for invalid state in run loop objects */
 
-//true if timer is valid; otherwise false.
 CF_INLINE Boolean __CFIsValid(const void *cf) {
     return (Boolean)__CFBitfieldGetValue(((const CFRuntimeBase *)cf)->_cfinfo[CF_INFO_BITS], 3, 3);
 }
 
-//有效状态
 CF_INLINE void __CFSetValid(void *cf) {
     __CFBitfieldSetValue(((CFRuntimeBase *)cf)->_cfinfo[CF_INFO_BITS], 3, 3, 1);
 }
 
-//无效状态
 CF_INLINE void __CFUnsetValid(void *cf) {
     __CFBitfieldSetValue(((CFRuntimeBase *)cf)->_cfinfo[CF_INFO_BITS], 3, 3, 0);
 }
@@ -965,8 +947,8 @@ struct __CFRunLoopSource {
     CFIndex _order;			/* immutable */
     CFMutableBagRef _runLoops;
     union {
-        CFRunLoopSourceContext version0;	 /* immutable, except invalidation */
-        CFRunLoopSourceContext1 version1;	 /* immutable, except invalidation */
+	CFRunLoopSourceContext version0;	/* immutable, except invalidation */
+        CFRunLoopSourceContext1 version1;	/* immutable, except invalidation */
     } _context;
 };
 
@@ -986,11 +968,11 @@ CF_INLINE void __CFRunLoopSourceUnsetSignaled(CFRunLoopSourceRef rls) {
 
 CF_INLINE void __CFRunLoopSourceLock(CFRunLoopSourceRef rls) {
     pthread_mutex_lock(&(rls->_lock));
-    //    CFLog(6, CFSTR("__CFRunLoopSourceLock locked %p"), rls);
+//    CFLog(6, CFSTR("__CFRunLoopSourceLock locked %p"), rls);
 }
 
 CF_INLINE void __CFRunLoopSourceUnlock(CFRunLoopSourceRef rls) {
-    //    CFLog(6, CFSTR("__CFRunLoopSourceLock unlocking %p"), rls);
+//    CFLog(6, CFSTR("__CFRunLoopSourceLock unlocking %p"), rls);
     pthread_mutex_unlock(&(rls->_lock));
 }
 
@@ -1036,18 +1018,18 @@ CF_INLINE void __CFRunLoopObserverUnsetRepeats(CFRunLoopObserverRef rlo) {
 
 CF_INLINE void __CFRunLoopObserverLock(CFRunLoopObserverRef rlo) {
     pthread_mutex_lock(&(rlo->_lock));
-    //    CFLog(6, CFSTR("__CFRunLoopObserverLock locked %p"), rlo);
+//    CFLog(6, CFSTR("__CFRunLoopObserverLock locked %p"), rlo);
 }
 
 CF_INLINE void __CFRunLoopObserverUnlock(CFRunLoopObserverRef rlo) {
-    //    CFLog(6, CFSTR("__CFRunLoopObserverLock unlocking %p"), rlo);
+//    CFLog(6, CFSTR("__CFRunLoopObserverLock unlocking %p"), rlo);
     pthread_mutex_unlock(&(rlo->_lock));
 }
 
 static void __CFRunLoopObserverSchedule(CFRunLoopObserverRef rlo, CFRunLoopRef rl, CFRunLoopModeRef rlm) {
     __CFRunLoopObserverLock(rlo);
     if (0 == rlo->_rlCount) {
-        rlo->_runLoop = rl;
+	rlo->_runLoop = rl;
     }
     rlo->_rlCount++;
     __CFRunLoopObserverUnlock(rlo);
@@ -1057,7 +1039,7 @@ static void __CFRunLoopObserverCancel(CFRunLoopObserverRef rlo, CFRunLoopRef rl,
     __CFRunLoopObserverLock(rlo);
     rlo->_rlCount--;
     if (0 == rlo->_rlCount) {
-        rlo->_runLoop = NULL;
+	rlo->_runLoop = NULL;
     }
     __CFRunLoopObserverUnlock(rlo);
 }
@@ -1068,11 +1050,11 @@ struct __CFRunLoopTimer {
     CFRuntimeBase _base;
     uint16_t _bits;  //标记fire状态
     pthread_mutex_t _lock;
-    CFRunLoopRef _runLoop;        //添加该timer的runloop
-    CFMutableSetRef _rlModes;     //存放所有 包含该timer的 mode的 modeName，意味着一个timer可能会在多个mode中存在
+    CFRunLoopRef _runLoop;
+    CFMutableSetRef _rlModes;
     CFAbsoluteTime _nextFireDate;
-    CFTimeInterval _interval;	  //理想时间间隔	/* immutable */
-    CFTimeInterval _tolerance;    //时间偏差      /* mutable */
+    CFTimeInterval _interval;		/* immutable */
+    CFTimeInterval _tolerance;          /* mutable */
     uint64_t _fireTSR;			/* TSR units */
     CFIndex _order;			/* immutable */
     CFRunLoopTimerCallBack _callout;	/* immutable */
@@ -1087,12 +1069,10 @@ CF_INLINE Boolean __CFRunLoopTimerIsFiring(CFRunLoopTimerRef rlt) {
     return (Boolean)__CFBitfieldGetValue(rlt->_bits, 0, 0);
 }
 
-//设置firing状态为true
 CF_INLINE void __CFRunLoopTimerSetFiring(CFRunLoopTimerRef rlt) {
     __CFBitfieldSetValue(rlt->_bits, 0, 0, 1);
 }
 
-//设置firing状态为false
 CF_INLINE void __CFRunLoopTimerUnsetFiring(CFRunLoopTimerRef rlt) {
     __CFBitfieldSetValue(rlt->_bits, 0, 0, 0);
 }
@@ -1107,11 +1087,11 @@ CF_INLINE void __CFRunLoopTimerSetDeallocating(CFRunLoopTimerRef rlt) {
 
 CF_INLINE void __CFRunLoopTimerLock(CFRunLoopTimerRef rlt) {
     pthread_mutex_lock(&(rlt->_lock));
-    //    CFLog(6, CFSTR("__CFRunLoopTimerLock locked %p"), rlt);
+//    CFLog(6, CFSTR("__CFRunLoopTimerLock locked %p"), rlt);
 }
 
 CF_INLINE void __CFRunLoopTimerUnlock(CFRunLoopTimerRef rlt) {
-    //    CFLog(6, CFSTR("__CFRunLoopTimerLock unlocking %p"), rlt);
+//    CFLog(6, CFSTR("__CFRunLoopTimerLock unlocking %p"), rlt);
     pthread_mutex_unlock(&(rlt->_lock));
 }
 
@@ -1133,7 +1113,6 @@ CONST_STRING_DECL(kCFRunLoopDefaultMode, "kCFRunLoopDefaultMode")
 CONST_STRING_DECL(kCFRunLoopCommonModes, "kCFRunLoopCommonModes")
 
 // call with rl and rlm locked
-//在Mode中，通过MachPort查找CFRunLoopSourceRef
 static CFRunLoopSourceRef __CFRunLoopModeFindSourceForMachPort(CFRunLoopRef rl, CFRunLoopModeRef rlm, __CFPort port) {	/* DOES CALLOUT */
     CHECK_FOR_FORK();
     CFRunLoopSourceRef found = rlm->_portToV1SourceMap ? (CFRunLoopSourceRef)CFDictionaryGetValue(rlm->_portToV1SourceMap, (const void *)(uintptr_t)port) : NULL;
@@ -1152,18 +1131,18 @@ static void __CFRunLoopCleanseSources(const void *value, void *context) {
     CFIndex idx, cnt;
     const void **list, *buffer[256];
     if (NULL == rlm->_sources0 && NULL == rlm->_sources1) return;
-    
+
     cnt = (rlm->_sources0 ? CFSetGetCount(rlm->_sources0) : 0) + (rlm->_sources1 ? CFSetGetCount(rlm->_sources1) : 0);
     list = (const void **)((cnt <= 256) ? buffer : CFAllocatorAllocate(kCFAllocatorSystemDefault, cnt * sizeof(void *), 0));
     if (rlm->_sources0) CFSetGetValues(rlm->_sources0, list);
     if (rlm->_sources1) CFSetGetValues(rlm->_sources1, list + (rlm->_sources0 ? CFSetGetCount(rlm->_sources0) : 0));
     for (idx = 0; idx < cnt; idx++) {
-        CFRunLoopSourceRef rls = (CFRunLoopSourceRef)list[idx];
-        __CFRunLoopSourceLock(rls);
-        if (NULL != rls->_runLoops) {
-            CFBagRemoveValue(rls->_runLoops, rl);
-        }
-        __CFRunLoopSourceUnlock(rls);
+	CFRunLoopSourceRef rls = (CFRunLoopSourceRef)list[idx];
+	__CFRunLoopSourceLock(rls);
+	if (NULL != rls->_runLoops) {
+	    CFBagRemoveValue(rls->_runLoops, rl);
+	}
+	__CFRunLoopSourceUnlock(rls);
     }
     if (list != buffer) CFAllocatorDeallocate(kCFAllocatorSystemDefault, list);
 }
@@ -1174,13 +1153,13 @@ static void __CFRunLoopDeallocateSources(const void *value, void *context) {
     CFIndex idx, cnt;
     const void **list, *buffer[256];
     if (NULL == rlm->_sources0 && NULL == rlm->_sources1) return;
-    
+
     cnt = (rlm->_sources0 ? CFSetGetCount(rlm->_sources0) : 0) + (rlm->_sources1 ? CFSetGetCount(rlm->_sources1) : 0);
     list = (const void **)((cnt <= 256) ? buffer : CFAllocatorAllocate(kCFAllocatorSystemDefault, cnt * sizeof(void *), 0));
     if (rlm->_sources0) CFSetGetValues(rlm->_sources0, list);
     if (rlm->_sources1) CFSetGetValues(rlm->_sources1, list + (rlm->_sources0 ? CFSetGetCount(rlm->_sources0) : 0));
     for (idx = 0; idx < cnt; idx++) {
-        CFRetain(list[idx]);
+	CFRetain(list[idx]);
     }
     if (rlm->_sources0) CFSetRemoveAllValues(rlm->_sources0);
     if (rlm->_sources1) CFSetRemoveAllValues(rlm->_sources1);
@@ -1201,7 +1180,7 @@ static void __CFRunLoopDeallocateSources(const void *value, void *context) {
                 __CFPortSetRemove(port, rlm->_portSet);
             }
         }
-        CFRelease(rls);
+	CFRelease(rls);
     }
     if (list != buffer) CFAllocatorDeallocate(kCFAllocatorSystemDefault, list);
 }
@@ -1216,12 +1195,12 @@ static void __CFRunLoopDeallocateObservers(const void *value, void *context) {
     list = (const void **)((cnt <= 256) ? buffer : CFAllocatorAllocate(kCFAllocatorSystemDefault, cnt * sizeof(void *), 0));
     CFArrayGetValues(rlm->_observers, CFRangeMake(0, cnt), list);
     for (idx = 0; idx < cnt; idx++) {
-        CFRetain(list[idx]);
+	CFRetain(list[idx]);
     }
     CFArrayRemoveAllValues(rlm->_observers);
     for (idx = 0; idx < cnt; idx++) {
-        __CFRunLoopObserverCancel((CFRunLoopObserverRef)list[idx], rl, rlm);
-        CFRelease(list[idx]);
+	__CFRunLoopObserverCancel((CFRunLoopObserverRef)list[idx], rl, rlm);
+	CFRelease(list[idx]);
     }
     if (list != buffer) CFAllocatorDeallocate(kCFAllocatorSystemDefault, list);
 }
@@ -1260,41 +1239,41 @@ CF_EXPORT CFRunLoopRef _CFRunLoopGet0b(pthread_t t);
 
 static void __CFRunLoopDeallocate(CFTypeRef cf) {
     CFRunLoopRef rl = (CFRunLoopRef)cf;
-    
+
     if (_CFRunLoopGet0b(pthread_main_thread_np()) == cf) HALT;
-    
+
     /* We try to keep the run loop in a valid state as long as possible,
-     since sources may have non-retained references to the run loop.
-     Another reason is that we don't want to lock the run loop for
-     callback reasons, if we can get away without that.  We start by
-     eliminating the sources, since they are the most likely to call
-     back into the run loop during their "cancellation". Common mode
-     items will be removed from the mode indirectly by the following
-     three lines. */
+       since sources may have non-retained references to the run loop.
+       Another reason is that we don't want to lock the run loop for
+       callback reasons, if we can get away without that.  We start by
+       eliminating the sources, since they are the most likely to call
+       back into the run loop during their "cancellation". Common mode
+       items will be removed from the mode indirectly by the following
+       three lines. */
     __CFRunLoopSetDeallocating(rl);
     if (NULL != rl->_modes) {
-        CFSetApplyFunction(rl->_modes, (__CFRunLoopCleanseSources), rl); // remove references to rl
-        CFSetApplyFunction(rl->_modes, (__CFRunLoopDeallocateSources), rl);
-        CFSetApplyFunction(rl->_modes, (__CFRunLoopDeallocateObservers), rl);
-        CFSetApplyFunction(rl->_modes, (__CFRunLoopDeallocateTimers), rl);
+	CFSetApplyFunction(rl->_modes, (__CFRunLoopCleanseSources), rl); // remove references to rl
+	CFSetApplyFunction(rl->_modes, (__CFRunLoopDeallocateSources), rl);
+	CFSetApplyFunction(rl->_modes, (__CFRunLoopDeallocateObservers), rl);
+	CFSetApplyFunction(rl->_modes, (__CFRunLoopDeallocateTimers), rl);
     }
     __CFRunLoopLock(rl);
     struct _block_item *item = rl->_blocks_head;
     while (item) {
-        struct _block_item *curr = item;
-        item = item->_next;
-        CFRelease(curr->_mode);
-        Block_release(curr->_block);
-        free(curr);
+	struct _block_item *curr = item;
+	item = item->_next;
+	CFRelease(curr->_mode);
+	Block_release(curr->_block);
+	free(curr);
     }
     if (NULL != rl->_commonModeItems) {
-        CFRelease(rl->_commonModeItems);
+	CFRelease(rl->_commonModeItems);
     }
     if (NULL != rl->_commonModes) {
-        CFRelease(rl->_commonModes);
+	CFRelease(rl->_commonModes);
     }
     if (NULL != rl->_modes) {
-        CFRelease(rl->_modes);
+	CFRelease(rl->_modes);
     }
     __CFPortFree(rl->_wakeUpPort);
     rl->_wakeUpPort = CFPORT_NULL;
@@ -1312,7 +1291,7 @@ static const CFRuntimeClass __CFRunLoopModeClass = {
     __CFRunLoopModeDeallocate,
     __CFRunLoopModeEqual,
     __CFRunLoopModeHash,
-    NULL,      //
+    NULL,      // 
     __CFRunLoopModeCopyDescription
 };
 
@@ -1324,7 +1303,7 @@ static const CFRuntimeClass __CFRunLoopClass = {
     __CFRunLoopDeallocate,
     NULL,
     NULL,
-    NULL,      //
+    NULL,      // 
     __CFRunLoopCopyDescription
 };
 
@@ -1334,50 +1313,38 @@ CF_PRIVATE void __CFRunLoopInitialize(void) {
     __kCFRunLoopTypeID = _CFRuntimeRegisterClass(&__CFRunLoopClass);
     __kCFRunLoopModeTypeID = _CFRuntimeRegisterClass(&__CFRunLoopModeClass);
 }
-
+ 
 CFTypeID CFRunLoopGetTypeID(void) {
     return __kCFRunLoopTypeID;
 }
 
-//根据线程创建一个runloop
 static CFRunLoopRef __CFRunLoopCreate(pthread_t t) {
     CFRunLoopRef loop = NULL;
     CFRunLoopModeRef rlm;
-    //计算一个内存大小用于创建CFRunLoopRef对象
     uint32_t size = sizeof(struct __CFRunLoop) - sizeof(CFRuntimeBase);
-    //用runtime创建一个CFRunLoopRef对象
     loop = (CFRunLoopRef)_CFRuntimeCreateInstance(kCFAllocatorSystemDefault, __kCFRunLoopTypeID, size, NULL);
     if (NULL == loop) {
-        return NULL;
+	return NULL;
     }
-    //初始化runloop的各种标记状态
     (void)__CFRunLoopPushPerRunData(loop);
     __CFRunLoopLockInit(&loop->_lock);
-    //初始化一个唤醒端口，当需要唤醒runloop时，可以通过内核往该端口发送消息
     loop->_wakeUpPort = __CFPortAllocate();
-    //没看懂HALT
     if (CFPORT_NULL == loop->_wakeUpPort) HALT;
-    //设置runloop为唤醒状态
     __CFRunLoopSetIgnoreWakeUps(loop);
-    //初始化_commonModes集合
     loop->_commonModes = CFSetCreateMutable(kCFAllocatorSystemDefault, 0, &kCFTypeSetCallBacks);
-    //把kCFRunLoopDefaultMode加入_commonModes
     CFSetAddValue(loop->_commonModes, kCFRunLoopDefaultMode);
     loop->_commonModeItems = NULL;
     loop->_currentMode = NULL;
-    //初始化_modes集合
     loop->_modes = CFSetCreateMutable(kCFAllocatorSystemDefault, 0, &kCFTypeSetCallBacks);
     loop->_blocks_head = NULL;
     loop->_blocks_tail = NULL;
     loop->_counterpart = NULL;
-    //线程赋值为传入的线程
     loop->_pthread = t;
 #if DEPLOYMENT_TARGET_WINDOWS
     loop->_winthread = GetCurrentThreadId();
 #else
     loop->_winthread = 0;
 #endif
-    //查找kCFRunLoopDefaultMode，此处传入true，所以没找到会创建一个
     rlm = __CFRunLoopFindMode(loop, kCFRunLoopDefaultMode, true);
     if (NULL != rlm) __CFRunLoopModeUnlock(rlm);
     return loop;
@@ -1388,55 +1355,39 @@ static CFSpinLock_t loopsLock = CFSpinLockInit;
 
 // should only be called by Foundation
 // t==0 is a synonym for "main thread" that always works
-//根据线程取runloop
 CF_EXPORT CFRunLoopRef _CFRunLoopGet0(pthread_t t) {
     if (pthread_equal(t, kNilPthreadT)) {
-        t = pthread_main_thread_np();
+	t = pthread_main_thread_np();
     }
     __CFSpinLock(&loopsLock);
-    //如果存储runloop的字典不存在
     if (!__CFRunLoops) {
         __CFSpinUnlock(&loopsLock);
-        //创建一个临时字典dict
-        CFMutableDictionaryRef dict = CFDictionaryCreateMutable(kCFAllocatorSystemDefault, 0, NULL, &kCFTypeDictionaryValueCallBacks);
-        //创建主线程的runloop
-        CFRunLoopRef mainLoop = __CFRunLoopCreate(pthread_main_thread_np());
-        //把主线程的runloop保存到dict中，key是线程，value是runloop
-        CFDictionarySetValue(dict, pthreadPointer(pthread_main_thread_np()), mainLoop);
-        //此处NULL和__CFRunLoops指针都指向NULL，匹配，所以将dict写到__CFRunLoops
-        if (!OSAtomicCompareAndSwapPtrBarrier(NULL, dict, (void * volatile *)&__CFRunLoops)) {
-            //释放dict
-            CFRelease(dict);
-        }
-        //释放mainrunloop
-        CFRelease(mainLoop);
+	CFMutableDictionaryRef dict = CFDictionaryCreateMutable(kCFAllocatorSystemDefault, 0, NULL, &kCFTypeDictionaryValueCallBacks);
+	CFRunLoopRef mainLoop = __CFRunLoopCreate(pthread_main_thread_np());
+	CFDictionarySetValue(dict, pthreadPointer(pthread_main_thread_np()), mainLoop);
+	if (!OSAtomicCompareAndSwapPtrBarrier(NULL, dict, (void * volatile *)&__CFRunLoops)) {
+	    CFRelease(dict);
+	}
+	CFRelease(mainLoop);
         __CFSpinLock(&loopsLock);
     }
-    //以上说明，第一次进来的时候，不管是getMainRunloop还是get子线程的runloop，主线程的runloop总是会被创建
-    
-    //从字典__CFRunLoops中获取传入线程t的runloop
     CFRunLoopRef loop = (CFRunLoopRef)CFDictionaryGetValue(__CFRunLoops, pthreadPointer(t));
     __CFSpinUnlock(&loopsLock);
-    //如果没有获取到
     if (!loop) {
-        //根据线程t创建一个runloop
-        CFRunLoopRef newLoop = __CFRunLoopCreate(t);
+	CFRunLoopRef newLoop = __CFRunLoopCreate(t);
         __CFSpinLock(&loopsLock);
-        loop = (CFRunLoopRef)CFDictionaryGetValue(__CFRunLoops, pthreadPointer(t));
-        if (!loop) {
-            //把newLoop存入字典__CFRunLoops，key是线程t
-            CFDictionarySetValue(__CFRunLoops, pthreadPointer(t), newLoop);
-            loop = newLoop;
-        }
+	loop = (CFRunLoopRef)CFDictionaryGetValue(__CFRunLoops, pthreadPointer(t));
+	if (!loop) {
+	    CFDictionarySetValue(__CFRunLoops, pthreadPointer(t), newLoop);
+	    loop = newLoop;
+	}
         // don't release run loops inside the loopsLock, because CFRunLoopDeallocate may end up taking it
         __CFSpinUnlock(&loopsLock);
-        CFRelease(newLoop);
+	CFRelease(newLoop);
     }
-    //如果传入线程就是当前线程
     if (pthread_equal(t, pthread_self())) {
         _CFSetTSD(__CFTSDKeyRunLoop, (void *)loop, NULL);
         if (0 == _CFGetTSD(__CFTSDKeyRunLoopCntr)) {
-            //注册一个回调，当线程销毁时，销毁对应的runloop
             _CFSetTSD(__CFTSDKeyRunLoopCntr, (void *)(PTHREAD_DESTRUCTOR_ITERATIONS-1), (void (*)(void *))__CFFinalizeRunLoop);
         }
     }
@@ -1446,7 +1397,7 @@ CF_EXPORT CFRunLoopRef _CFRunLoopGet0(pthread_t t) {
 // should only be called by Foundation
 CFRunLoopRef _CFRunLoopGet0b(pthread_t t) {
     if (pthread_equal(t, kNilPthreadT)) {
-        t = pthread_main_thread_np();
+	t = pthread_main_thread_np();
     }
     __CFSpinLock(&loopsLock);
     CFRunLoopRef loop = NULL;
@@ -1463,22 +1414,22 @@ static void __CFRunLoopRemoveAllSources(CFRunLoopRef rl, CFStringRef modeName);
 CF_PRIVATE void __CFFinalizeRunLoop(uintptr_t data) {
     CFRunLoopRef rl = NULL;
     if (data <= 1) {
-        __CFSpinLock(&loopsLock);
-        if (__CFRunLoops) {
-            rl = (CFRunLoopRef)CFDictionaryGetValue(__CFRunLoops, pthreadPointer(pthread_self()));
-            if (rl) CFRetain(rl);
-            CFDictionaryRemoveValue(__CFRunLoops, pthreadPointer(pthread_self()));
-        }
-        __CFSpinUnlock(&loopsLock);
+	__CFSpinLock(&loopsLock);
+	if (__CFRunLoops) {
+	    rl = (CFRunLoopRef)CFDictionaryGetValue(__CFRunLoops, pthreadPointer(pthread_self()));
+	    if (rl) CFRetain(rl);
+	    CFDictionaryRemoveValue(__CFRunLoops, pthreadPointer(pthread_self()));
+	}
+	__CFSpinUnlock(&loopsLock);
     } else {
         _CFSetTSD(__CFTSDKeyRunLoopCntr, (void *)(data - 1), (void (*)(void *))__CFFinalizeRunLoop);
     }
     if (rl && CFRunLoopGetMain() != rl) { // protect against cooperative threads
         if (NULL != rl->_counterpart) {
             CFRelease(rl->_counterpart);
-            rl->_counterpart = NULL;
+	    rl->_counterpart = NULL;
         }
-        // purge all sources before deallocation
+	// purge all sources before deallocation
         CFArrayRef array = CFRunLoopCopyAllModes(rl);
         for (CFIndex idx = CFArrayGetCount(array); idx--;) {
             CFStringRef modeName = (CFStringRef)CFArrayGetValueAtIndex(array, idx);
@@ -1515,34 +1466,30 @@ void _CFRunLoopSetCurrent(CFRunLoopRef rl) {
     if (rl != currentLoop) {
         CFRetain(currentLoop); // avoid a deallocation of the currentLoop inside the lock
         __CFSpinLock(&loopsLock);
-        if (rl) {
-            CFDictionarySetValue(__CFRunLoops, pthreadPointer(pthread_self()), rl);
-        } else {
-            CFDictionaryRemoveValue(__CFRunLoops, pthreadPointer(pthread_self()));
-        }
+	if (rl) {
+	    CFDictionarySetValue(__CFRunLoops, pthreadPointer(pthread_self()), rl);
+	} else {
+	    CFDictionaryRemoveValue(__CFRunLoops, pthreadPointer(pthread_self()));
+	}
         __CFSpinUnlock(&loopsLock);
-        CFRelease(currentLoop);
+	CFRelease(currentLoop);
         _CFSetTSD(__CFTSDKeyRunLoop, NULL, NULL);
         _CFSetTSD(__CFTSDKeyRunLoopCntr, 0, (void (*)(void *))__CFFinalizeRunLoop);
     }
 }
 #endif
 
-//取主线程的runloop
 CFRunLoopRef CFRunLoopGetMain(void) {
     CHECK_FOR_FORK();
     static CFRunLoopRef __main = NULL; // no retain needed
-    //传入主线程
     if (!__main) __main = _CFRunLoopGet0(pthread_main_thread_np()); // no CAS needed
     return __main;
 }
 
-//取当前所在线程的runloop
 CFRunLoopRef CFRunLoopGetCurrent(void) {
     CHECK_FOR_FORK();
     CFRunLoopRef rl = (CFRunLoopRef)_CFGetTSD(__CFTSDKeyRunLoop);
     if (rl) return rl;
-    //传入当前线程
     return _CFRunLoopGet0(pthread_self());
 }
 
@@ -1551,7 +1498,7 @@ CFStringRef CFRunLoopCopyCurrentMode(CFRunLoopRef rl) {
     CFStringRef result = NULL;
     __CFRunLoopLock(rl);
     if (NULL != rl->_currentMode) {
-        result = (CFStringRef)CFRetain(rl->_currentMode->_name);
+	result = (CFStringRef)CFRetain(rl->_currentMode->_name);
     }
     __CFRunLoopUnlock(rl);
     return result;
@@ -1578,11 +1525,11 @@ static void __CFRunLoopAddItemsToCommonMode(const void *value, void *ctx) {
     CFRunLoopRef rl = (CFRunLoopRef)(((CFTypeRef *)ctx)[0]);
     CFStringRef modeName = (CFStringRef)(((CFTypeRef *)ctx)[1]);
     if (CFGetTypeID(item) == __kCFRunLoopSourceTypeID) {
-        CFRunLoopAddSource(rl, (CFRunLoopSourceRef)item, modeName);
+	CFRunLoopAddSource(rl, (CFRunLoopSourceRef)item, modeName);
     } else if (CFGetTypeID(item) == __kCFRunLoopObserverTypeID) {
-        CFRunLoopAddObserver(rl, (CFRunLoopObserverRef)item, modeName);
+	CFRunLoopAddObserver(rl, (CFRunLoopObserverRef)item, modeName);
     } else if (CFGetTypeID(item) == __kCFRunLoopTimerTypeID) {
-        CFRunLoopAddTimer(rl, (CFRunLoopTimerRef)item, modeName);
+	CFRunLoopAddTimer(rl, (CFRunLoopTimerRef)item, modeName);
     }
 }
 
@@ -1590,13 +1537,12 @@ static void __CFRunLoopAddItemToCommonModes(const void *value, void *ctx) {
     CFStringRef modeName = (CFStringRef)value;
     CFRunLoopRef rl = (CFRunLoopRef)(((CFTypeRef *)ctx)[0]);
     CFTypeRef item = (CFTypeRef)(((CFTypeRef *)ctx)[1]);
-    //根据事件类型添加到不同的事件源数组
     if (CFGetTypeID(item) == __kCFRunLoopSourceTypeID) {
-        CFRunLoopAddSource(rl, (CFRunLoopSourceRef)item, modeName);
+	CFRunLoopAddSource(rl, (CFRunLoopSourceRef)item, modeName);
     } else if (CFGetTypeID(item) == __kCFRunLoopObserverTypeID) {
-        CFRunLoopAddObserver(rl, (CFRunLoopObserverRef)item, modeName);
+	CFRunLoopAddObserver(rl, (CFRunLoopObserverRef)item, modeName);
     } else if (CFGetTypeID(item) == __kCFRunLoopTimerTypeID) {
-        CFRunLoopAddTimer(rl, (CFRunLoopTimerRef)item, modeName);
+	CFRunLoopAddTimer(rl, (CFRunLoopTimerRef)item, modeName);
     }
 }
 
@@ -1605,11 +1551,11 @@ static void __CFRunLoopRemoveItemFromCommonModes(const void *value, void *ctx) {
     CFRunLoopRef rl = (CFRunLoopRef)(((CFTypeRef *)ctx)[0]);
     CFTypeRef item = (CFTypeRef)(((CFTypeRef *)ctx)[1]);
     if (CFGetTypeID(item) == __kCFRunLoopSourceTypeID) {
-        CFRunLoopRemoveSource(rl, (CFRunLoopSourceRef)item, modeName);
+	CFRunLoopRemoveSource(rl, (CFRunLoopSourceRef)item, modeName);
     } else if (CFGetTypeID(item) == __kCFRunLoopObserverTypeID) {
-        CFRunLoopRemoveObserver(rl, (CFRunLoopObserverRef)item, modeName);
+	CFRunLoopRemoveObserver(rl, (CFRunLoopObserverRef)item, modeName);
     } else if (CFGetTypeID(item) == __kCFRunLoopTimerTypeID) {
-        CFRunLoopRemoveTimer(rl, (CFRunLoopTimerRef)item, modeName);
+	CFRunLoopRemoveTimer(rl, (CFRunLoopTimerRef)item, modeName);
     }
 }
 
@@ -1617,7 +1563,7 @@ CF_EXPORT Boolean _CFRunLoop01(CFRunLoopRef rl, CFStringRef modeName) {
     __CFRunLoopLock(rl);
     Boolean present = CFSetContainsValue(rl->_commonModes, modeName);
     __CFRunLoopUnlock(rl);
-    return present;
+    return present; 
 }
 
 void CFRunLoopAddCommonMode(CFRunLoopRef rl, CFStringRef modeName) {
@@ -1625,14 +1571,14 @@ void CFRunLoopAddCommonMode(CFRunLoopRef rl, CFStringRef modeName) {
     if (__CFRunLoopIsDeallocating(rl)) return;
     __CFRunLoopLock(rl);
     if (!CFSetContainsValue(rl->_commonModes, modeName)) {
-        CFSetRef set = rl->_commonModeItems ? CFSetCreateCopy(kCFAllocatorSystemDefault, rl->_commonModeItems) : NULL;
-        CFSetAddValue(rl->_commonModes, modeName);
-        if (NULL != set) {
-            CFTypeRef context[2] = {rl, modeName};
-            /* add all common-modes items to new mode */
-            CFSetApplyFunction(set, (__CFRunLoopAddItemsToCommonMode), (void *)context);
-            CFRelease(set);
-        }
+	CFSetRef set = rl->_commonModeItems ? CFSetCreateCopy(kCFAllocatorSystemDefault, rl->_commonModeItems) : NULL;
+	CFSetAddValue(rl->_commonModes, modeName);
+	if (NULL != set) {
+	    CFTypeRef context[2] = {rl, modeName};
+	    /* add all common-modes items to new mode */
+	    CFSetApplyFunction(set, (__CFRunLoopAddItemsToCommonMode), (void *)context);
+	    CFRelease(set);
+	}
     } else {
     }
     __CFRunLoopUnlock(rl);
@@ -1686,59 +1632,49 @@ static Boolean __CFRunLoopDoBlocks(CFRunLoopRef rl, CFRunLoopModeRef rlm) { // C
     while (item) {
         struct _block_item *curr = item;
         item = item->_next;
-        Boolean doit = false;
-        if (CFStringGetTypeID() == CFGetTypeID(curr->_mode)) {
-            doit = CFEqual(curr->_mode, curMode) || (CFEqual(curr->_mode, kCFRunLoopCommonModes) && CFSetContainsValue(commonModes, curMode));
+	Boolean doit = false;
+	if (CFStringGetTypeID() == CFGetTypeID(curr->_mode)) {
+	    doit = CFEqual(curr->_mode, curMode) || (CFEqual(curr->_mode, kCFRunLoopCommonModes) && CFSetContainsValue(commonModes, curMode));
         } else {
-            doit = CFSetContainsValue((CFSetRef)curr->_mode, curMode) || (CFSetContainsValue((CFSetRef)curr->_mode, kCFRunLoopCommonModes) && CFSetContainsValue(commonModes, curMode));
-        }
-        if (!doit) prev = curr;
-        if (doit) {
-            if (prev) prev->_next = item;
-            if (curr == head) head = item;
-            if (curr == tail) tail = prev;
-            void (^block)(void) = curr->_block;
+	    doit = CFSetContainsValue((CFSetRef)curr->_mode, curMode) || (CFSetContainsValue((CFSetRef)curr->_mode, kCFRunLoopCommonModes) && CFSetContainsValue(commonModes, curMode));
+	}
+	if (!doit) prev = curr;
+	if (doit) {
+	    if (prev) prev->_next = item;
+	    if (curr == head) head = item;
+	    if (curr == tail) tail = prev;
+	    void (^block)(void) = curr->_block;
             CFRelease(curr->_mode);
             free(curr);
-            if (doit) {
+	    if (doit) {
                 __CFRUNLOOP_IS_CALLING_OUT_TO_A_BLOCK__(block);
-                did = true;
-            }
+	        did = true;
+	    }
             Block_release(block); // do this before relocking to prevent deadlocks where some yahoo wants to run the run loop reentrantly from their dealloc
-        }
+	}
     }
     __CFRunLoopLock(rl);
     __CFRunLoopModeLock(rlm);
     if (head) {
-        tail->_next = rl->_blocks_head;
-        rl->_blocks_head = head;
+	tail->_next = rl->_blocks_head;
+	rl->_blocks_head = head;
         if (!rl->_blocks_tail) rl->_blocks_tail = tail;
     }
     return did;
 }
 
 /* rl is locked, rlm is locked on entrance and exit */
-//执行observer
 static void __CFRunLoopDoObservers() __attribute__((noinline));
 static void __CFRunLoopDoObservers(CFRunLoopRef rl, CFRunLoopModeRef rlm, CFRunLoopActivity activity) {	/* DOES CALLOUT */
     CHECK_FOR_FORK();
-    
-    //取_observers个数
+
     CFIndex cnt = rlm->_observers ? CFArrayGetCount(rlm->_observers) : 0;
-    //如果_observers为空则直接返回
     if (cnt < 1) return;
-    
+
     /* Fire the observers */
     STACK_BUFFER_DECL(CFRunLoopObserverRef, buffer, (cnt <= 1024) ? cnt : 1);
-    //上一行等同于下面代码
-//    if (cnt <= 1024) {
-//        CFRunLoopObserverRef buffer[cnt];
-//    } else {
-//        CFRunLoopObserverRef buffer[1];
-//    }
     CFRunLoopObserverRef *collectedObservers = (cnt <= 1024) ? buffer : (CFRunLoopObserverRef *)malloc(cnt * sizeof(CFRunLoopObserverRef));
     CFIndex obs_cnt = 0;
-    //便利mode的_observers，取出没有firing的observer
     for (CFIndex idx = 0; idx < cnt; idx++) {
         CFRunLoopObserverRef rlo = (CFRunLoopObserverRef)CFArrayGetValueAtIndex(rlm->_observers, idx);
         if (0 != (rlo->_activities & activity) && __CFIsValid(rlo) && !__CFRunLoopObserverIsFiring(rlo)) {
@@ -1747,16 +1683,13 @@ static void __CFRunLoopDoObservers(CFRunLoopRef rl, CFRunLoopModeRef rlm, CFRunL
     }
     __CFRunLoopModeUnlock(rlm);
     __CFRunLoopUnlock(rl);
-    //遍历没有firing的observer
     for (CFIndex idx = 0; idx < obs_cnt; idx++) {
         CFRunLoopObserverRef rlo = collectedObservers[idx];
         __CFRunLoopObserverLock(rlo);
         if (__CFIsValid(rlo)) {
             Boolean doInvalidate = !__CFRunLoopObserverRepeats(rlo);
-            //设置为firing状态
             __CFRunLoopObserverSetFiring(rlo);
             __CFRunLoopObserverUnlock(rlo);
-            //
             __CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__(rlo->_callout, rlo, activity, rlo->_context.info);
             if (doInvalidate) {
                 CFRunLoopObserverInvalidate(rlo);
@@ -1769,7 +1702,7 @@ static void __CFRunLoopDoObservers(CFRunLoopRef rl, CFRunLoopModeRef rlm, CFRunL
     }
     __CFRunLoopLock(rl);
     __CFRunLoopModeLock(rlm);
-    
+
     if (collectedObservers != buffer) free(collectedObservers);
 }
 
@@ -1781,24 +1714,21 @@ static CFComparisonResult __CFRunLoopSourceComparator(const void *val1, const vo
     return kCFCompareEqualTo;
 }
 
-//TODO 暂未搞懂
 static void __CFRunLoopCollectSources0(const void *value, void *context) {
     CFRunLoopSourceRef rls = (CFRunLoopSourceRef)value;
     CFTypeRef *sources = (CFTypeRef *)context;
-    
-    //如果version0的version不为0并且
     if (0 == rls->_context.version0.version && __CFIsValid(rls) && __CFRunLoopSourceIsSignaled(rls)) {
-        if (NULL == *sources) {
-            *sources = CFRetain(rls);
-        } else if (CFGetTypeID(*sources) == __kCFRunLoopSourceTypeID) {
-            CFTypeRef oldrls = *sources;
-            *sources = CFArrayCreateMutable(kCFAllocatorSystemDefault, 0, &kCFTypeArrayCallBacks);
-            CFArrayAppendValue((CFMutableArrayRef)*sources, oldrls);
-            CFArrayAppendValue((CFMutableArrayRef)*sources, rls);
-            CFRelease(oldrls);
-        } else {
-            CFArrayAppendValue((CFMutableArrayRef)*sources, rls);
-        }
+	if (NULL == *sources) {
+	    *sources = CFRetain(rls);
+	} else if (CFGetTypeID(*sources) == __kCFRunLoopSourceTypeID) {
+	    CFTypeRef oldrls = *sources;
+	    *sources = CFArrayCreateMutable(kCFAllocatorSystemDefault, 0, &kCFTypeArrayCallBacks);
+	    CFArrayAppendValue((CFMutableArrayRef)*sources, oldrls);
+	    CFArrayAppendValue((CFMutableArrayRef)*sources, rls);
+	    CFRelease(oldrls);
+	} else {
+	    CFArrayAppendValue((CFMutableArrayRef)*sources, rls);
+	}
     }
 }
 
@@ -1813,12 +1743,12 @@ static void __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__(void (*pe
 static void __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE1_PERFORM_FUNCTION__() __attribute__((noinline));
 static void __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE1_PERFORM_FUNCTION__(
 #if DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED || DEPLOYMENT_TARGET_EMBEDDED_MINI
-                                                                       void *(*perform)(void *msg, CFIndex size, CFAllocatorRef allocator, void *info),
-                                                                       mach_msg_header_t *msg, CFIndex size, mach_msg_header_t **reply,
+        void *(*perform)(void *msg, CFIndex size, CFAllocatorRef allocator, void *info),
+        mach_msg_header_t *msg, CFIndex size, mach_msg_header_t **reply,
 #else
-                                                                       void (*perform)(void *),
+        void (*perform)(void *),
 #endif
-                                                                       void *info) {
+        void *info) {
     if (perform) {
 #if DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED || DEPLOYMENT_TARGET_EMBEDDED_MINI
         *reply = perform(msg, size, kCFAllocatorSystemDefault, info);
@@ -1830,73 +1760,63 @@ static void __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE1_PERFORM_FUNCTION__(
 }
 
 /* rl is locked, rlm is locked on entrance and exit */
-//执行sources0
 static Boolean __CFRunLoopDoSources0(CFRunLoopRef rl, CFRunLoopModeRef rlm, Boolean stopAfterHandle) __attribute__((noinline));
 static Boolean __CFRunLoopDoSources0(CFRunLoopRef rl, CFRunLoopModeRef rlm, Boolean stopAfterHandle) {	/* DOES CALLOUT */
     CHECK_FOR_FORK();
     CFTypeRef sources = NULL;
-    Boolean sourceHandled = false; //是否执行了函数
-    
+    Boolean sourceHandled = false;
+
     /* Fire the version 0 sources */
-    //如果数组_sources0存在 并且 包含元素个数大于0
     if (NULL != rlm->_sources0 && 0 < CFSetGetCount(rlm->_sources0)) {
-        //让数组_sources0中的每一个元素都执行一次__CFRunLoopCollectSources0
-        CFSetApplyFunction(rlm->_sources0, (__CFRunLoopCollectSources0), &sources);
+	CFSetApplyFunction(rlm->_sources0, (__CFRunLoopCollectSources0), &sources);
     }
     if (NULL != sources) {
-        __CFRunLoopModeUnlock(rlm);
-        __CFRunLoopUnlock(rl);
-        // sources is either a single (retained) CFRunLoopSourceRef or an array of (retained) CFRunLoopSourceRef
-        // sources 可能是一个CFRunLoopSourceRef 也可能是一个包含若干CFRunLoopSourceRef的数组
-        //如果sources是单个CFRunLoopSourceRef
-        if (CFGetTypeID(sources) == __kCFRunLoopSourceTypeID) {
-            CFRunLoopSourceRef rls = (CFRunLoopSourceRef)sources;
-            __CFRunLoopSourceLock(rls);
-            //只有source属于Signale状态 才处理事件
+	__CFRunLoopModeUnlock(rlm);
+	__CFRunLoopUnlock(rl);
+	// sources is either a single (retained) CFRunLoopSourceRef or an array of (retained) CFRunLoopSourceRef
+	if (CFGetTypeID(sources) == __kCFRunLoopSourceTypeID) {
+	    CFRunLoopSourceRef rls = (CFRunLoopSourceRef)sources;
+	    __CFRunLoopSourceLock(rls);
             if (__CFRunLoopSourceIsSignaled(rls)) {
-                __CFRunLoopSourceUnsetSignaled(rls);
-                if (__CFIsValid(rls)) {
-                    __CFRunLoopSourceUnlock(rls);
-                    //执行perform
+	        __CFRunLoopSourceUnsetSignaled(rls);
+	        if (__CFIsValid(rls)) {
+	            __CFRunLoopSourceUnlock(rls);
                     __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__(rls->_context.version0.perform, rls->_context.version0.info);
-                    CHECK_FOR_FORK();
-                    sourceHandled = true;
-                } else {
-                    __CFRunLoopSourceUnlock(rls);
-                }
+	            CHECK_FOR_FORK();
+	            sourceHandled = true;
+	        } else {
+	            __CFRunLoopSourceUnlock(rls);
+	        }
             } else {
                 __CFRunLoopSourceUnlock(rls);
             }
-        } else {
-            CFIndex cnt = CFArrayGetCount((CFArrayRef)sources);
-            CFArraySortValues((CFMutableArrayRef)sources, CFRangeMake(0, cnt), (__CFRunLoopSourceComparator), NULL);
-            //遍历sources
-            for (CFIndex idx = 0; idx < cnt; idx++) {
-                CFRunLoopSourceRef rls = (CFRunLoopSourceRef)CFArrayGetValueAtIndex((CFArrayRef)sources, idx);
-                __CFRunLoopSourceLock(rls);
-                //只有source属于Signale状态 才处理事件
+	} else {
+	    CFIndex cnt = CFArrayGetCount((CFArrayRef)sources);
+	    CFArraySortValues((CFMutableArrayRef)sources, CFRangeMake(0, cnt), (__CFRunLoopSourceComparator), NULL);
+	    for (CFIndex idx = 0; idx < cnt; idx++) {
+		CFRunLoopSourceRef rls = (CFRunLoopSourceRef)CFArrayGetValueAtIndex((CFArrayRef)sources, idx);
+		__CFRunLoopSourceLock(rls);
                 if (__CFRunLoopSourceIsSignaled(rls)) {
-                    __CFRunLoopSourceUnsetSignaled(rls);
-                    if (__CFIsValid(rls)) {
-                        __CFRunLoopSourceUnlock(rls);
-                        //执行perform
+		    __CFRunLoopSourceUnsetSignaled(rls);
+		    if (__CFIsValid(rls)) {
+		        __CFRunLoopSourceUnlock(rls);
                         __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__(rls->_context.version0.perform, rls->_context.version0.info);
-                        CHECK_FOR_FORK();
-                        sourceHandled = true;
-                    } else {
-                        __CFRunLoopSourceUnlock(rls);
-                    }
+		        CHECK_FOR_FORK();
+		        sourceHandled = true;
+		    } else {
+		        __CFRunLoopSourceUnlock(rls);
+		    }
                 } else {
                     __CFRunLoopSourceUnlock(rls);
                 }
-                if (stopAfterHandle && sourceHandled) {
-                    break;
-                }
-            }
-        }
-        CFRelease(sources);
-        __CFRunLoopLock(rl);
-        __CFRunLoopModeLock(rlm);
+		if (stopAfterHandle && sourceHandled) {
+		    break;
+		}
+	    }
+	}
+	CFRelease(sources);
+	__CFRunLoopLock(rl);
+	__CFRunLoopModeLock(rlm);
     }
     return sourceHandled;
 }
@@ -1910,29 +1830,29 @@ static Boolean __CFRunLoopDoSource1(CFRunLoopRef rl, CFRunLoopModeRef rlm, CFRun
 #if DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED || DEPLOYMENT_TARGET_EMBEDDED_MINI
                                     , mach_msg_header_t *msg, CFIndex size, mach_msg_header_t **reply
 #endif
-) {	/* DOES CALLOUT */
+                                    ) {	/* DOES CALLOUT */
     CHECK_FOR_FORK();
     Boolean sourceHandled = false;
-    
+
     /* Fire a version 1 source */
     CFRetain(rls);
     __CFRunLoopModeUnlock(rlm);
     __CFRunLoopUnlock(rl);
     __CFRunLoopSourceLock(rls);
     if (__CFIsValid(rls)) {
-        __CFRunLoopSourceUnsetSignaled(rls);
-        __CFRunLoopSourceUnlock(rls);
+	__CFRunLoopSourceUnsetSignaled(rls);
+	__CFRunLoopSourceUnlock(rls);
         __CFRunLoopDebugInfoForRunLoopSource(rls);
         __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE1_PERFORM_FUNCTION__(rls->_context.version1.perform,
 #if DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED || DEPLOYMENT_TARGET_EMBEDDED_MINI
-                                                                   msg, size, reply,
+            msg, size, reply,
 #endif
-                                                                   rls->_context.version1.info);
-        CHECK_FOR_FORK();
-        sourceHandled = true;
+            rls->_context.version1.info);
+	CHECK_FOR_FORK();
+	sourceHandled = true;
     } else {
         if (_LogCFRunLoop) { CFLog(kCFLogLevelDebug, CFSTR("%p (%s) __CFRunLoopDoSource1 rls %p is invalid"), CFRunLoopGetCurrent(), *_CFGetProgname(), rls); }
-        __CFRunLoopSourceUnlock(rls);
+	__CFRunLoopSourceUnlock(rls);
     }
     CFRelease(rls);
     __CFRunLoopLock(rl);
@@ -1956,36 +1876,34 @@ static CFIndex __CFRunLoopInsertionIndexInTimerArray(CFArrayRef array, CFRunLoop
             return 0;
         }
     }
-    
+
     CFIndex add = (1 << flsl(cnt)) * 2;
     CFIndex idx = 0;
     Boolean lastTestLEQ;
     do {
         add = add / 2;
-        lastTestLEQ = false;
+	lastTestLEQ = false;
         CFIndex testIdx = idx + add;
         if (testIdx < cnt) {
             CFRunLoopTimerRef item = (CFRunLoopTimerRef)CFArrayGetValueAtIndex(array, testIdx);
             if (item->_fireTSR <= rlt->_fireTSR) {
                 idx = testIdx;
-                lastTestLEQ = true;
+		lastTestLEQ = true;
             }
         }
     } while (0 < add);
-    
+
     return lastTestLEQ ? idx + 1 : idx;
 }
 
-//
-static void __CFArmNextTimerInMode(CFRunLoopModeRef rlm, CFRunLoopRef rl) {
+static void __CFArmNextTimerInMode(CFRunLoopModeRef rlm, CFRunLoopRef rl) {    
     uint64_t nextHardDeadline = UINT64_MAX;
     uint64_t nextSoftDeadline = UINT64_MAX;
-    
+
     if (rlm->_timers) {
         // Look at the list of timers. We will calculate two TSR values; the next soft and next hard deadline.
         // The next soft deadline is the first time we can fire any timer. This is the fire date of the first timer in our sorted list of timers.
         // The next hard deadline is the last time at which we can fire the timer before we've moved out of the allowable tolerance of the timers in our list.
-        //遍历_timers
         for (CFIndex idx = 0, cnt = CFArrayGetCount(rlm->_timers); idx < cnt; idx++) {
             CFRunLoopTimerRef t = (CFRunLoopTimerRef)CFArrayGetValueAtIndex(rlm->_timers , idx);
             // discount timers currently firing
@@ -2077,12 +1995,10 @@ static void __CFArmNextTimerInMode(CFRunLoopModeRef rlm, CFRunLoopRef rl) {
 }
 
 // call with rlm and its run loop locked, and the TSRLock locked; rlt not locked; returns with same state
-//添加或者移除timer
 static void __CFRepositionTimerInMode(CFRunLoopModeRef rlm, CFRunLoopTimerRef rlt, Boolean isInArray) __attribute__((noinline));
 static void __CFRepositionTimerInMode(CFRunLoopModeRef rlm, CFRunLoopTimerRef rlt, Boolean isInArray) {
     if (!rlt) return;
     
-    //
     CFMutableArrayRef timerArray = rlm->_timers;
     if (!timerArray) return;
     Boolean found = false;
@@ -2092,14 +2008,12 @@ static void __CFRepositionTimerInMode(CFRunLoopModeRef rlm, CFRunLoopTimerRef rl
         CFIndex idx = CFArrayGetFirstIndexOfValue(timerArray, CFRangeMake(0, CFArrayGetCount(timerArray)), rlt);
         if (kCFNotFound != idx) {
             CFRetain(rlt);
-            //移除timer
             CFArrayRemoveValueAtIndex(timerArray, idx);
             found = true;
         }
     }
     if (!found && isInArray) return;
     CFIndex newIdx = __CFRunLoopInsertionIndexInTimerArray(timerArray, rlt);
-    //向mode的timers中添加timer
     CFArrayInsertValueAtIndex(timerArray, newIdx, rlt);
     __CFArmNextTimerInMode(rlm, rlt->_runLoop);
     if (isInArray) CFRelease(rlt);
@@ -2110,11 +2024,11 @@ static void __CFRepositionTimerInMode(CFRunLoopModeRef rlm, CFRunLoopTimerRef rl
 static Boolean __CFRunLoopDoTimer(CFRunLoopRef rl, CFRunLoopModeRef rlm, CFRunLoopTimerRef rlt) {	/* DOES CALLOUT */
     Boolean timerHandled = false;
     uint64_t oldFireTSR = 0;
-    
+
     /* Fire a timer */
     CFRetain(rlt);
     __CFRunLoopTimerLock(rlt);
-    
+
     if (__CFIsValid(rlt) && rlt->_fireTSR <= mach_absolute_time() && !__CFRunLoopTimerIsFiring(rlt) && rlt->_runLoop == rl) {
         void *context_info = NULL;
         void (*context_release)(const void *) = NULL;
@@ -2125,32 +2039,32 @@ static Boolean __CFRunLoopDoTimer(CFRunLoopRef rl, CFRunLoopModeRef rlm, CFRunLo
             context_info = rlt->_context.info;
         }
         Boolean doInvalidate = (0.0 == rlt->_interval);
-        __CFRunLoopTimerSetFiring(rlt);
+	__CFRunLoopTimerSetFiring(rlt);
         // Just in case the next timer has exactly the same deadlines as this one, we reset these values so that the arm next timer code can correctly find the next timer in the list and arm the underlying timer.
         rlm->_timerSoftDeadline = UINT64_MAX;
         rlm->_timerHardDeadline = UINT64_MAX;
         __CFRunLoopTimerUnlock(rlt);
-        __CFRunLoopTimerFireTSRLock();
-        oldFireTSR = rlt->_fireTSR;
-        __CFRunLoopTimerFireTSRUnlock();
-        
+	__CFRunLoopTimerFireTSRLock();
+	oldFireTSR = rlt->_fireTSR;
+	__CFRunLoopTimerFireTSRUnlock();
+
         __CFArmNextTimerInMode(rlm, rl);
-        
-        __CFRunLoopModeUnlock(rlm);
-        __CFRunLoopUnlock(rl);
-        __CFRUNLOOP_IS_CALLING_OUT_TO_A_TIMER_CALLBACK_FUNCTION__(rlt->_callout, rlt, context_info);
-        CHECK_FOR_FORK();
+
+	__CFRunLoopModeUnlock(rlm);
+	__CFRunLoopUnlock(rl);
+	__CFRUNLOOP_IS_CALLING_OUT_TO_A_TIMER_CALLBACK_FUNCTION__(rlt->_callout, rlt, context_info);
+	CHECK_FOR_FORK();
         if (doInvalidate) {
             CFRunLoopTimerInvalidate(rlt);      /* DOES CALLOUT */
         }
         if (context_release) {
             context_release(context_info);
         }
-        __CFRunLoopLock(rl);
-        __CFRunLoopModeLock(rlm);
+	__CFRunLoopLock(rl);
+	__CFRunLoopModeLock(rlm);
         __CFRunLoopTimerLock(rlt);
-        timerHandled = true;
-        __CFRunLoopTimerUnsetFiring(rlt);
+	timerHandled = true;
+	__CFRunLoopTimerUnsetFiring(rlt);
     }
     if (__CFIsValid(rlt) && timerHandled) {
         /* This is just a little bit tricky: we want to support calling
@@ -2159,7 +2073,7 @@ static Boolean __CFRunLoopDoTimer(CFRunLoopRef rl, CFRunLoopModeRef rlm, CFRunLo
          * it is completely ignored. */
         if (oldFireTSR < rlt->_fireTSR) {
             /* Next fire TSR was set, and set to a date after the previous
-             * fire date, so we honor it. */
+            * fire date, so we honor it. */
             __CFRunLoopTimerUnlock(rlt);
             // The timer was adjusted and repositioned, during the
             // callout, but if it was still the min timer, it was
@@ -2168,13 +2082,13 @@ static Boolean __CFRunLoopDoTimer(CFRunLoopRef rl, CFRunLoopModeRef rlm, CFRunLo
             // timer instead of whatever was chosen.
             __CFArmNextTimerInMode(rlm, rl);
         } else {
-            uint64_t nextFireTSR = 0LL;
+	    uint64_t nextFireTSR = 0LL;
             uint64_t intervalTSR = 0LL;
             if (rlt->_interval <= 0.0) {
             } else if (TIMER_INTERVAL_LIMIT < rlt->_interval) {
-                intervalTSR = __CFTimeIntervalToTSR(TIMER_INTERVAL_LIMIT);
+        	intervalTSR = __CFTimeIntervalToTSR(TIMER_INTERVAL_LIMIT);
             } else {
-                intervalTSR = __CFTimeIntervalToTSR(rlt->_interval);
+        	intervalTSR = __CFTimeIntervalToTSR(rlt->_interval);
             }
             if (LLONG_MAX - intervalTSR <= oldFireTSR) {
                 nextFireTSR = LLONG_MAX;
@@ -2188,42 +2102,42 @@ static Boolean __CFRunLoopDoTimer(CFRunLoopRef rl, CFRunLoopModeRef rlm, CFRunLo
             CFRunLoopRef rlt_rl = rlt->_runLoop;
             if (rlt_rl) {
                 CFRetain(rlt_rl);
-                CFIndex cnt = CFSetGetCount(rlt->_rlModes);
-                STACK_BUFFER_DECL(CFTypeRef, modes, cnt);
-                CFSetGetValues(rlt->_rlModes, (const void **)modes);
-                // To avoid A->B, B->A lock ordering issues when coming up
-                // towards the run loop from a source, the timer has to be
-                // unlocked, which means we have to protect from object
-                // invalidation, although that's somewhat expensive.
-                for (CFIndex idx = 0; idx < cnt; idx++) {
-                    CFRetain(modes[idx]);
-                }
-                __CFRunLoopTimerUnlock(rlt);
-                for (CFIndex idx = 0; idx < cnt; idx++) {
-                    CFStringRef name = (CFStringRef)modes[idx];
-                    modes[idx] = (CFTypeRef)__CFRunLoopFindMode(rlt_rl, name, false);
-                    CFRelease(name);
-                }
-                __CFRunLoopTimerFireTSRLock();
-                rlt->_fireTSR = nextFireTSR;
+		CFIndex cnt = CFSetGetCount(rlt->_rlModes);
+		STACK_BUFFER_DECL(CFTypeRef, modes, cnt);
+		CFSetGetValues(rlt->_rlModes, (const void **)modes);
+		// To avoid A->B, B->A lock ordering issues when coming up
+		// towards the run loop from a source, the timer has to be
+		// unlocked, which means we have to protect from object
+		// invalidation, although that's somewhat expensive.
+		for (CFIndex idx = 0; idx < cnt; idx++) {
+		    CFRetain(modes[idx]);
+		}
+		__CFRunLoopTimerUnlock(rlt);
+		for (CFIndex idx = 0; idx < cnt; idx++) {
+		    CFStringRef name = (CFStringRef)modes[idx];
+		    modes[idx] = (CFTypeRef)__CFRunLoopFindMode(rlt_rl, name, false);
+		    CFRelease(name);
+		}
+		__CFRunLoopTimerFireTSRLock();
+		rlt->_fireTSR = nextFireTSR;
                 rlt->_nextFireDate = CFAbsoluteTimeGetCurrent() + __CFTimeIntervalUntilTSR(nextFireTSR);
-                for (CFIndex idx = 0; idx < cnt; idx++) {
-                    CFRunLoopModeRef rlm = (CFRunLoopModeRef)modes[idx];
-                    if (rlm) {
+		for (CFIndex idx = 0; idx < cnt; idx++) {
+		    CFRunLoopModeRef rlm = (CFRunLoopModeRef)modes[idx];
+		    if (rlm) {
                         __CFRepositionTimerInMode(rlm, rlt, true);
-                    }
-                }
-                __CFRunLoopTimerFireTSRUnlock();
-                for (CFIndex idx = 0; idx < cnt; idx++) {
-                    __CFRunLoopModeUnlock((CFRunLoopModeRef)modes[idx]);
-                }
-                CFRelease(rlt_rl);
-            } else {
-                __CFRunLoopTimerUnlock(rlt);
-                __CFRunLoopTimerFireTSRLock();
-                rlt->_fireTSR = nextFireTSR;
+		    }
+		}
+		__CFRunLoopTimerFireTSRUnlock();
+		for (CFIndex idx = 0; idx < cnt; idx++) {
+		    __CFRunLoopModeUnlock((CFRunLoopModeRef)modes[idx]);
+		}
+		CFRelease(rlt_rl);
+	    } else {
+		__CFRunLoopTimerUnlock(rlt);
+		__CFRunLoopTimerFireTSRLock();
+		rlt->_fireTSR = nextFireTSR;
                 rlt->_nextFireDate = CFAbsoluteTimeGetCurrent() + __CFTimeIntervalUntilTSR(nextFireTSR);
-                __CFRunLoopTimerFireTSRUnlock();
+		__CFRunLoopTimerFireTSRUnlock();
             }
         }
     } else {
@@ -2266,7 +2180,7 @@ CF_EXPORT Boolean _CFRunLoopFinished(CFRunLoopRef rl, CFStringRef modeName) {
     __CFRunLoopLock(rl);
     rlm = __CFRunLoopFindMode(rl, modeName, false);
     if (NULL == rlm || __CFRunLoopModeIsEmpty(rl, rlm, NULL)) {
-        result = true;
+	result = true;
     }
     if (rlm) __CFRunLoopModeUnlock(rlm);
     __CFRunLoopUnlock(rl);
@@ -2326,13 +2240,13 @@ static Boolean __CFRunLoopWaitForMultipleObjects(__CFPortSet portSet, HANDLE *on
     Boolean result = false;
     
     if (portSet) {
-        // copy out the handles to be safe from other threads at work
-        handles = __CFPortSetGetPorts(portSet, handleBuf, MAXIMUM_WAIT_OBJECTS, &handleCount);
-        freeHandles = (handles != handleBuf);
+	// copy out the handles to be safe from other threads at work
+	handles = __CFPortSetGetPorts(portSet, handleBuf, MAXIMUM_WAIT_OBJECTS, &handleCount);
+	freeHandles = (handles != handleBuf);
     } else {
-        handles = onePort;
-        handleCount = 1;
-        freeHandles = FALSE;
+	handles = onePort;
+	handleCount = 1;
+	freeHandles = FALSE;
     }
     
     // The run loop mode and loop are already in proper unlocked state from caller
@@ -2341,27 +2255,27 @@ static Boolean __CFRunLoopWaitForMultipleObjects(__CFPortSet portSet, HANDLE *on
     CFAssert2(waitResult != WAIT_FAILED, __kCFLogAssertion, "%s(): error %d from MsgWaitForMultipleObjects", __PRETTY_FUNCTION__, GetLastError());
     
     if (waitResult == WAIT_TIMEOUT) {
-        // do nothing, just return to caller
-        result = false;
+	// do nothing, just return to caller
+	result = false;
     } else if (waitResult >= WAIT_OBJECT_0 && waitResult < WAIT_OBJECT_0+handleCount) {
-        // a handle was signaled
-        if (livePort) *livePort = handles[waitResult-WAIT_OBJECT_0];
-        result = true;
+	// a handle was signaled
+	if (livePort) *livePort = handles[waitResult-WAIT_OBJECT_0];
+	result = true;
     } else if (waitResult == WAIT_OBJECT_0+handleCount) {
-        // windows message received
+	// windows message received
         if (msgReceived) *msgReceived = true;
-        result = true;
+	result = true;
     } else if (waitResult >= WAIT_ABANDONED_0 && waitResult < WAIT_ABANDONED_0+handleCount) {
-        // an "abandoned mutex object"
-        if (livePort) *livePort = handles[waitResult-WAIT_ABANDONED_0];
-        result = true;
+	// an "abandoned mutex object"
+	if (livePort) *livePort = handles[waitResult-WAIT_ABANDONED_0];
+	result = true;
     } else {
-        CFAssert2(waitResult == WAIT_FAILED, __kCFLogAssertion, "%s(): unexpected result from MsgWaitForMultipleObjects: %d", __PRETTY_FUNCTION__, waitResult);
-        result = false;
+	CFAssert2(waitResult == WAIT_FAILED, __kCFLogAssertion, "%s(): unexpected result from MsgWaitForMultipleObjects: %d", __PRETTY_FUNCTION__, waitResult);
+	result = false;
     }
     
     if (freeHandles) {
-        CFAllocatorDeallocate(kCFAllocatorSystemDefault, handles);
+	CFAllocatorDeallocate(kCFAllocatorSystemDefault, handles);
     }
     
     return result;
@@ -2391,22 +2305,18 @@ static void __CFRunLoopTimeout(void *arg) {
 }
 
 /* rl, rlm are locked on entrance and exit */
-//运行runloop
 static int32_t __CFRunLoopRun(CFRunLoopRef rl, CFRunLoopModeRef rlm, CFTimeInterval seconds, Boolean stopAfterHandle, CFRunLoopModeRef previousMode) {
-    //获取系统启动后的CPU运行时间
     uint64_t startTSR = mach_absolute_time();
-    
+
     if (__CFRunLoopIsStopped(rl)) {
         __CFRunLoopUnsetStopped(rl);
-        return kCFRunLoopRunStopped;
+	return kCFRunLoopRunStopped;
     } else if (rlm->_stopped) {
-        rlm->_stopped = false;
-        return kCFRunLoopRunStopped;
+	rlm->_stopped = false;
+	return kCFRunLoopRunStopped;
     }
     
-    //mach端口
     mach_port_name_t dispatchPort = MACH_PORT_NULL;
-    //判断是否为主线程
     Boolean libdispatchQSafe = pthread_main_np() && ((HANDLE_DISPATCH_ON_BASE_INVOCATION_ONLY && NULL == previousMode) || (!HANDLE_DISPATCH_ON_BASE_INVOCATION_ONLY && 0 == _CFGetTSD(__CFTSDKeyIsInGCDMainQ)));
     if (libdispatchQSafe && (CFRunLoopGetMain() == rl) && CFSetContainsValue(rl->_commonModes, rlm->_name)) dispatchPort = _dispatch_get_main_queue_port_4CF();
     
@@ -2422,33 +2332,27 @@ static int32_t __CFRunLoopRun(CFRunLoopRef rl, CFRunLoopModeRef rlm, CFTimeInter
     
     dispatch_source_t timeout_timer = NULL;
     struct __timeout_context *timeout_context = (struct __timeout_context *)malloc(sizeof(*timeout_context));
-    
-    //立即超时
     if (seconds <= 0.0) { // instant timeout
         seconds = 0.0;
         timeout_context->termTSR = 0ULL;
-    }
-    //seconds为超时时间
-    else if (seconds <= TIMER_INTERVAL_LIMIT) {
-        dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, DISPATCH_QUEUE_OVERCOMMIT);
-        timeout_timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, queue);
+    } else if (seconds <= TIMER_INTERVAL_LIMIT) {
+	dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, DISPATCH_QUEUE_OVERCOMMIT);
+	timeout_timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, queue);
         dispatch_retain(timeout_timer);
-        timeout_context->ds = timeout_timer;
-        timeout_context->rl = (CFRunLoopRef)CFRetain(rl);
-        timeout_context->termTSR = startTSR + __CFTimeIntervalToTSR(seconds);
-        dispatch_set_context(timeout_timer, timeout_context); // source gets ownership of context
-        dispatch_source_set_event_handler_f(timeout_timer, __CFRunLoopTimeout);
+	timeout_context->ds = timeout_timer;
+	timeout_context->rl = (CFRunLoopRef)CFRetain(rl);
+	timeout_context->termTSR = startTSR + __CFTimeIntervalToTSR(seconds);
+	dispatch_set_context(timeout_timer, timeout_context); // source gets ownership of context
+	dispatch_source_set_event_handler_f(timeout_timer, __CFRunLoopTimeout);
         dispatch_source_set_cancel_handler_f(timeout_timer, __CFRunLoopTimeoutCancel);
         uint64_t ns_at = (uint64_t)((__CFTSRToTimeInterval(startTSR) + seconds) * 1000000000ULL);
         dispatch_source_set_timer(timeout_timer, dispatch_time(1, ns_at), DISPATCH_TIME_FOREVER, 1000ULL);
         dispatch_resume(timeout_timer);
-    }
-    //永不超时
-    else { // infinite timeout
+    } else { // infinite timeout
         seconds = 9999999999.0;
         timeout_context->termTSR = UINT64_MAX;
     }
-    
+
     Boolean didDispatchPortLastTime = true;
     int32_t retVal = 0;
     do {
@@ -2460,24 +2364,22 @@ static int32_t __CFRunLoopRun(CFRunLoopRef rl, CFRunLoopModeRef rlm, CFTimeInter
         HANDLE livePort = NULL;
         Boolean windowsMessageReceived = false;
 #endif
-        __CFPortSet waitSet = rlm->_portSet;
-        
+	__CFPortSet waitSet = rlm->_portSet;
+
         __CFRunLoopUnsetIgnoreWakeUps(rl);
-        
-        //通知observer，即将开始处理timer事件
+
         if (rlm->_observerMask & kCFRunLoopBeforeTimers) __CFRunLoopDoObservers(rl, rlm, kCFRunLoopBeforeTimers);
         if (rlm->_observerMask & kCFRunLoopBeforeSources) __CFRunLoopDoObservers(rl, rlm, kCFRunLoopBeforeSources);
-        
-        __CFRunLoopDoBlocks(rl, rlm);
-        
-        //有事件处理返回true，没有事件返回NO
+
+	__CFRunLoopDoBlocks(rl, rlm);
+
         Boolean sourceHandledThisLoop = __CFRunLoopDoSources0(rl, rlm, stopAfterHandle);
         if (sourceHandledThisLoop) {
             __CFRunLoopDoBlocks(rl, rlm);
-        }
-        
+	}
+
         Boolean poll = sourceHandledThisLoop || (0ULL == timeout_context->termTSR);
-        
+
         if (MACH_PORT_NULL != dispatchPort && !didDispatchPortLastTime) {
 #if DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED || DEPLOYMENT_TARGET_EMBEDDED_MINI
             msg = (mach_msg_header_t *)msg_buffer;
@@ -2490,22 +2392,22 @@ static int32_t __CFRunLoopRun(CFRunLoopRef rl, CFRunLoopModeRef rlm, CFTimeInter
             }
 #endif
         }
-        
+
         didDispatchPortLastTime = false;
-        
-        if (!poll && (rlm->_observerMask & kCFRunLoopBeforeWaiting)) __CFRunLoopDoObservers(rl, rlm, kCFRunLoopBeforeWaiting);
-        __CFRunLoopSetSleeping(rl);
-        // do not do any user callouts after this point (after notifying of sleeping)
-        
+
+	if (!poll && (rlm->_observerMask & kCFRunLoopBeforeWaiting)) __CFRunLoopDoObservers(rl, rlm, kCFRunLoopBeforeWaiting);
+	__CFRunLoopSetSleeping(rl);
+	// do not do any user callouts after this point (after notifying of sleeping)
+
         // Must push the local-to-this-activation ports in on every loop
         // iteration, as this mode could be run re-entrantly and we don't
         // want these ports to get serviced.
-        
+
         __CFPortSetInsert(dispatchPort, waitSet);
         
-        __CFRunLoopModeUnlock(rlm);
-        __CFRunLoopUnlock(rl);
-        
+	__CFRunLoopModeUnlock(rlm);
+	__CFRunLoopUnlock(rl);
+
 #if DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED || DEPLOYMENT_TARGET_EMBEDDED_MINI
 #if USE_DISPATCH_SOURCE_FOR_TIMERS
         do {
@@ -2548,29 +2450,29 @@ static int32_t __CFRunLoopRun(CFRunLoopRef rl, CFRunLoopModeRef rlm, CFTimeInter
         
         __CFRunLoopLock(rl);
         __CFRunLoopModeLock(rlm);
-        
+
         // Must remove the local-to-this-activation ports in on every loop
         // iteration, as this mode could be run re-entrantly and we don't
         // want these ports to get serviced. Also, we don't want them left
         // in there if this function returns.
-        
+
         __CFPortSetRemove(dispatchPort, waitSet);
         
         __CFRunLoopSetIgnoreWakeUps(rl);
-        
+
         // user callouts now OK again
-        __CFRunLoopUnsetSleeping(rl);
-        if (!poll && (rlm->_observerMask & kCFRunLoopAfterWaiting)) __CFRunLoopDoObservers(rl, rlm, kCFRunLoopAfterWaiting);
-        
-    handle_msg:;
+	__CFRunLoopUnsetSleeping(rl);
+	if (!poll && (rlm->_observerMask & kCFRunLoopAfterWaiting)) __CFRunLoopDoObservers(rl, rlm, kCFRunLoopAfterWaiting);
+
+        handle_msg:;
         __CFRunLoopSetIgnoreWakeUps(rl);
-        
+
 #if DEPLOYMENT_TARGET_WINDOWS
         if (windowsMessageReceived) {
             // These Win32 APIs cause a callout, so make sure we're unlocked first and relocked after
             __CFRunLoopModeUnlock(rlm);
-            __CFRunLoopUnlock(rl);
-            
+	    __CFRunLoopUnlock(rl);
+
             if (rlm->_msgPump) {
                 rlm->_msgPump();
             } else {
@@ -2582,8 +2484,8 @@ static int32_t __CFRunLoopRun(CFRunLoopRef rl, CFRunLoopModeRef rlm, CFTimeInter
             }
             
             __CFRunLoopLock(rl);
-            __CFRunLoopModeLock(rlm);
-            sourceHandledThisLoop = true;
+	    __CFRunLoopModeLock(rlm);
+ 	    sourceHandledThisLoop = true;
             
             // To prevent starvation of sources other than the message queue, we check again to see if any other sources need to be serviced
             // Use 0 for the mask so windows messages are ignored this time. Also use 0 for the timeout, because we're just checking to see if the things are signalled right now -- we will wait on them again later.
@@ -2595,7 +2497,7 @@ static int32_t __CFRunLoopRun(CFRunLoopRef rl, CFRunLoopModeRef rlm, CFTimeInter
             __CFRunLoopWaitForMultipleObjects(waitSet, NULL, 0, 0, &livePort, NULL);
             
             __CFRunLoopLock(rl);
-            __CFRunLoopModeLock(rlm);
+            __CFRunLoopModeLock(rlm);            
             __CFRunLoopUnsetSleeping(rl);
             // If we have a new live port then it will be handled below as normal
         }
@@ -2643,9 +2545,9 @@ static int32_t __CFRunLoopRun(CFRunLoopRef rl, CFRunLoopModeRef rlm, CFTimeInter
 #endif
             __CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__(msg);
             _CFSetTSD(__CFTSDKeyIsInGCDMainQ, (void *)0, NULL);
-            __CFRunLoopLock(rl);
-            __CFRunLoopModeLock(rlm);
-            sourceHandledThisLoop = true;
+	        __CFRunLoopLock(rl);
+	        __CFRunLoopModeLock(rlm);
+ 	        sourceHandledThisLoop = true;
             didDispatchPortLastTime = true;
         } else {
             CFRUNLOOP_WAKEUP_FOR_SOURCE();
@@ -2653,93 +2555,81 @@ static int32_t __CFRunLoopRun(CFRunLoopRef rl, CFRunLoopModeRef rlm, CFTimeInter
             CFRunLoopSourceRef rls = __CFRunLoopModeFindSourceForMachPort(rl, rlm, livePort);
             if (rls) {
 #if DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED || DEPLOYMENT_TARGET_EMBEDDED_MINI
-                mach_msg_header_t *reply = NULL;
-                sourceHandledThisLoop = __CFRunLoopDoSource1(rl, rlm, rls, msg, msg->msgh_size, &reply) || sourceHandledThisLoop;
-                if (NULL != reply) {
-                    (void)mach_msg(reply, MACH_SEND_MSG, reply->msgh_size, 0, MACH_PORT_NULL, 0, MACH_PORT_NULL);
-                    CFAllocatorDeallocate(kCFAllocatorSystemDefault, reply);
-                }
+		mach_msg_header_t *reply = NULL;
+		sourceHandledThisLoop = __CFRunLoopDoSource1(rl, rlm, rls, msg, msg->msgh_size, &reply) || sourceHandledThisLoop;
+		if (NULL != reply) {
+		    (void)mach_msg(reply, MACH_SEND_MSG, reply->msgh_size, 0, MACH_PORT_NULL, 0, MACH_PORT_NULL);
+		    CFAllocatorDeallocate(kCFAllocatorSystemDefault, reply);
+		}
 #elif DEPLOYMENT_TARGET_WINDOWS
                 sourceHandledThisLoop = __CFRunLoopDoSource1(rl, rlm, rls) || sourceHandledThisLoop;
 #endif
-            }
-        }
+	    }
+        } 
 #if DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED || DEPLOYMENT_TARGET_EMBEDDED_MINI
         if (msg && msg != (mach_msg_header_t *)msg_buffer) free(msg);
 #endif
         
-        __CFRunLoopDoBlocks(rl, rlm);
+	__CFRunLoopDoBlocks(rl, rlm);
         
-        
-        if (sourceHandledThisLoop && stopAfterHandle) {
-            retVal = kCFRunLoopRunHandledSource;
+
+	if (sourceHandledThisLoop && stopAfterHandle) {
+	    retVal = kCFRunLoopRunHandledSource;
         } else if (timeout_context->termTSR < mach_absolute_time()) {
             retVal = kCFRunLoopRunTimedOut;
-        } else if (__CFRunLoopIsStopped(rl)) {
+	} else if (__CFRunLoopIsStopped(rl)) {
             __CFRunLoopUnsetStopped(rl);
-            retVal = kCFRunLoopRunStopped;
-        } else if (rlm->_stopped) {
-            rlm->_stopped = false;
-            retVal = kCFRunLoopRunStopped;
-        } else if (__CFRunLoopModeIsEmpty(rl, rlm, previousMode)) {
-            retVal = kCFRunLoopRunFinished;
-        }
+	    retVal = kCFRunLoopRunStopped;
+	} else if (rlm->_stopped) {
+	    rlm->_stopped = false;
+	    retVal = kCFRunLoopRunStopped;
+	} else if (__CFRunLoopModeIsEmpty(rl, rlm, previousMode)) {
+	    retVal = kCFRunLoopRunFinished;
+	}
     } while (0 == retVal);
-    
+
     if (timeout_timer) {
         dispatch_source_cancel(timeout_timer);
         dispatch_release(timeout_timer);
     } else {
         free(timeout_context);
     }
-    
+
     return retVal;
 }
 
-/*
- * 指定mode运行runloop
- * @param rl 当前运行的runloop
- * @param modeName 需要运行的mode的name
- * @param seconds  runloop的超时时间
- * @param returnAfterSourceHandled 是否处理完事件就返回
- */
 SInt32 CFRunLoopRunSpecific(CFRunLoopRef rl, CFStringRef modeName, CFTimeInterval seconds, Boolean returnAfterSourceHandled) {     /* DOES CALLOUT */
     CHECK_FOR_FORK();
     if (__CFRunLoopIsDeallocating(rl)) return kCFRunLoopRunFinished;
     __CFRunLoopLock(rl);
-    //根据modeName找到本次运行的mode
+    //根据modename找到需要run的mode
     CFRunLoopModeRef currentMode = __CFRunLoopFindMode(rl, modeName, false);
     //如果没找到 || mode中没有注册任何事件
     if (NULL == currentMode || __CFRunLoopModeIsEmpty(rl, currentMode, rl->_currentMode)) {
-        Boolean did = false;
-        if (currentMode) __CFRunLoopModeUnlock(currentMode);
-        __CFRunLoopUnlock(rl);
-        return did ? kCFRunLoopRunHandledSource : kCFRunLoopRunFinished;
+	Boolean did = false;
+	if (currentMode) __CFRunLoopModeUnlock(currentMode);
+	__CFRunLoopUnlock(rl);
+	return did ? kCFRunLoopRunHandledSource : kCFRunLoopRunFinished;
     }
     volatile _per_run_data *previousPerRun = __CFRunLoopPushPerRunData(rl);
-    //取上一次运行的mode
     CFRunLoopModeRef previousMode = rl->_currentMode;
-    //如果本次mode和上次的mode一致
     rl->_currentMode = currentMode;
-    //初始化一个result为kCFRunLoopRunFinished
     int32_t result = kCFRunLoopRunFinished;
-    
-    if (currentMode->_observerMask & kCFRunLoopEntry ) __CFRunLoopDoObservers(rl, currentMode, kCFRunLoopEntry);
-    result = __CFRunLoopRun(rl, currentMode, seconds, returnAfterSourceHandled, previousMode);
-    if (currentMode->_observerMask & kCFRunLoopExit ) __CFRunLoopDoObservers(rl, currentMode, kCFRunLoopExit);
-    
-    __CFRunLoopModeUnlock(currentMode);
-    __CFRunLoopPopPerRunData(rl, previousPerRun);
-    rl->_currentMode = previousMode;
+
+	if (currentMode->_observerMask & kCFRunLoopEntry ) __CFRunLoopDoObservers(rl, currentMode, kCFRunLoopEntry);
+	result = __CFRunLoopRun(rl, currentMode, seconds, returnAfterSourceHandled, previousMode);
+	if (currentMode->_observerMask & kCFRunLoopExit ) __CFRunLoopDoObservers(rl, currentMode, kCFRunLoopExit);
+
+        __CFRunLoopModeUnlock(currentMode);
+        __CFRunLoopPopPerRunData(rl, previousPerRun);
+	rl->_currentMode = previousMode;
     __CFRunLoopUnlock(rl);
     return result;
 }
 
-//在kCFRunLoopDefaultMode运行runloop
 void CFRunLoopRun(void) {	/* DOES CALLOUT */
     int32_t result;
     do {
-        //默认在kCFRunLoopDefaultMode下运行runloop
         result = CFRunLoopRunSpecific(CFRunLoopGetCurrent(), kCFRunLoopDefaultMode, 1.0e10, false);
         CHECK_FOR_FORK();
     } while (kCFRunLoopRunStopped != result && kCFRunLoopRunFinished != result);
@@ -2769,12 +2659,10 @@ Boolean CFRunLoopIsWaiting(CFRunLoopRef rl) {
     return __CFRunLoopIsSleeping(rl);
 }
 
-//唤醒runloop
 void CFRunLoopWakeUp(CFRunLoopRef rl) {
     CHECK_FOR_FORK();
     // This lock is crucial to ignorable wakeups, do not remove it.
     __CFRunLoopLock(rl);
-    //如果runloop已经是唤醒状态，则不处理
     if (__CFRunLoopIsIgnoringWakeUps(rl)) {
         __CFRunLoopUnlock(rl);
         return;
@@ -2784,7 +2672,6 @@ void CFRunLoopWakeUp(CFRunLoopRef rl) {
     /* We unconditionally try to send the message, since we don't want
      * to lose a wakeup, but the send may fail if there is already a
      * wakeup pending, since the queue length is 1. */
-    //大概理解：内核向runloop的_wakeUpPort发送消息，来唤醒runloop继续执行do while循环
     ret = __CFSendTrivialMachMessage(rl->_wakeUpPort, 0, MACH_SEND_TIMEOUT, 0);
     if (ret != MACH_MSG_SUCCESS && ret != MACH_SEND_TIMED_OUT) CRASH("*** Unable to send message to wake up port. (%d) ***", ret);
 #elif DEPLOYMENT_TARGET_WINDOWS
@@ -2813,8 +2700,8 @@ CF_EXPORT void _CFRunLoopStopMode(CFRunLoopRef rl, CFStringRef modeName) {
     __CFRunLoopLock(rl);
     rlm = __CFRunLoopFindMode(rl, modeName, true);
     if (NULL != rlm) {
-        rlm->_stopped = true;
-        __CFRunLoopModeUnlock(rlm);
+	rlm->_stopped = true;
+	__CFRunLoopModeUnlock(rlm);
     }
     __CFRunLoopUnlock(rl);
     CFRunLoopWakeUp(rl);
@@ -2828,46 +2715,46 @@ CF_EXPORT Boolean _CFRunLoopModeContainsMode(CFRunLoopRef rl, CFStringRef modeNa
 void CFRunLoopPerformBlock(CFRunLoopRef rl, CFTypeRef mode, void (^block)(void)) {
     CHECK_FOR_FORK();
     if (CFStringGetTypeID() == CFGetTypeID(mode)) {
-        mode = CFStringCreateCopy(kCFAllocatorSystemDefault, (CFStringRef)mode);
+	mode = CFStringCreateCopy(kCFAllocatorSystemDefault, (CFStringRef)mode);
         __CFRunLoopLock(rl);
-        // ensure mode exists
+	// ensure mode exists
         CFRunLoopModeRef currentMode = __CFRunLoopFindMode(rl, (CFStringRef)mode, true);
         if (currentMode) __CFRunLoopModeUnlock(currentMode);
         __CFRunLoopUnlock(rl);
     } else if (CFArrayGetTypeID() == CFGetTypeID(mode)) {
         CFIndex cnt = CFArrayGetCount((CFArrayRef)mode);
-        const void **values = (const void **)malloc(sizeof(const void *) * cnt);
+	const void **values = (const void **)malloc(sizeof(const void *) * cnt);
         CFArrayGetValues((CFArrayRef)mode, CFRangeMake(0, cnt), values);
-        mode = CFSetCreate(kCFAllocatorSystemDefault, values, cnt, &kCFTypeSetCallBacks);
+	mode = CFSetCreate(kCFAllocatorSystemDefault, values, cnt, &kCFTypeSetCallBacks);
         __CFRunLoopLock(rl);
-        // ensure modes exist
-        for (CFIndex idx = 0; idx < cnt; idx++) {
+	// ensure modes exist
+	for (CFIndex idx = 0; idx < cnt; idx++) {
             CFRunLoopModeRef currentMode = __CFRunLoopFindMode(rl, (CFStringRef)values[idx], true);
             if (currentMode) __CFRunLoopModeUnlock(currentMode);
-        }
+	}
         __CFRunLoopUnlock(rl);
-        free(values);
+	free(values);
     } else if (CFSetGetTypeID() == CFGetTypeID(mode)) {
         CFIndex cnt = CFSetGetCount((CFSetRef)mode);
-        const void **values = (const void **)malloc(sizeof(const void *) * cnt);
+	const void **values = (const void **)malloc(sizeof(const void *) * cnt);
         CFSetGetValues((CFSetRef)mode, values);
-        mode = CFSetCreate(kCFAllocatorSystemDefault, values, cnt, &kCFTypeSetCallBacks);
+	mode = CFSetCreate(kCFAllocatorSystemDefault, values, cnt, &kCFTypeSetCallBacks);
         __CFRunLoopLock(rl);
-        // ensure modes exist
-        for (CFIndex idx = 0; idx < cnt; idx++) {
+	// ensure modes exist
+	for (CFIndex idx = 0; idx < cnt; idx++) {
             CFRunLoopModeRef currentMode = __CFRunLoopFindMode(rl, (CFStringRef)values[idx], true);
             if (currentMode) __CFRunLoopModeUnlock(currentMode);
-        }
+	}
         __CFRunLoopUnlock(rl);
-        free(values);
+	free(values);
     } else {
-        mode = NULL;
+	mode = NULL;
     }
     block = Block_copy(block);
     if (!mode || !block) {
-        if (mode) CFRelease(mode);
-        if (block) Block_release(block);
-        return;
+	if (mode) CFRelease(mode);
+	if (block) Block_release(block);
+	return;
     }
     __CFRunLoopLock(rl);
     struct _block_item *new_item = (struct _block_item *)malloc(sizeof(struct _block_item));
@@ -2875,9 +2762,9 @@ void CFRunLoopPerformBlock(CFRunLoopRef rl, CFTypeRef mode, void (^block)(void))
     new_item->_mode = mode;
     new_item->_block = block;
     if (!rl->_blocks_tail) {
-        rl->_blocks_head = new_item;
+	rl->_blocks_head = new_item;
     } else {
-        rl->_blocks_tail->_next = new_item;
+	rl->_blocks_tail->_next = new_item;
     }
     rl->_blocks_tail = new_item;
     __CFRunLoopUnlock(rl);
@@ -2889,88 +2776,71 @@ Boolean CFRunLoopContainsSource(CFRunLoopRef rl, CFRunLoopSourceRef rls, CFStrin
     Boolean hasValue = false;
     __CFRunLoopLock(rl);
     if (modeName == kCFRunLoopCommonModes) {
-        if (NULL != rl->_commonModeItems) {
-            hasValue = CFSetContainsValue(rl->_commonModeItems, rls);
-        }
+	if (NULL != rl->_commonModeItems) {
+	    hasValue = CFSetContainsValue(rl->_commonModeItems, rls);
+	}
     } else {
-        rlm = __CFRunLoopFindMode(rl, modeName, false);
-        if (NULL != rlm) {
-            hasValue = (rlm->_sources0 ? CFSetContainsValue(rlm->_sources0, rls) : false) || (rlm->_sources1 ? CFSetContainsValue(rlm->_sources1, rls) : false);
-            __CFRunLoopModeUnlock(rlm);
-        }
+	rlm = __CFRunLoopFindMode(rl, modeName, false);
+	if (NULL != rlm) {
+	    hasValue = (rlm->_sources0 ? CFSetContainsValue(rlm->_sources0, rls) : false) || (rlm->_sources1 ? CFSetContainsValue(rlm->_sources1, rls) : false);
+	    __CFRunLoopModeUnlock(rlm);
+	}
     }
     __CFRunLoopUnlock(rl);
     return hasValue;
 }
 
-//添加source事件
 void CFRunLoopAddSource(CFRunLoopRef rl, CFRunLoopSourceRef rls, CFStringRef modeName) {	/* DOES CALLOUT */
     CHECK_FOR_FORK();
     if (__CFRunLoopIsDeallocating(rl)) return;
     if (!__CFIsValid(rls)) return;
     Boolean doVer0Callout = false;
     __CFRunLoopLock(rl);
-    //如果是kCFRunLoopCommonModes
     if (modeName == kCFRunLoopCommonModes) {
-        //如果runloop的_commonModes存在，则copy一个新的复制给set
-        CFSetRef set = rl->_commonModes ? CFSetCreateCopy(kCFAllocatorSystemDefault, rl->_commonModes) : NULL;
-       //如果runl _commonModeItems为空
-        if (NULL == rl->_commonModeItems) {
-            //先初始化
-            rl->_commonModeItems = CFSetCreateMutable(kCFAllocatorSystemDefault, 0, &kCFTypeSetCallBacks);
-        }
-        //把传入的CFRunLoopSourceRef加入_commonModeItems
-        CFSetAddValue(rl->_commonModeItems, rls);
-        //如果刚才set copy到的数组里有数据
-        if (NULL != set) {
-            CFTypeRef context[2] = {rl, rls};
-            /* add new item to all common-modes */
-            //则把set里的所有mode都执行一遍__CFRunLoopAddItemToCommonModes函数
-            CFSetApplyFunction(set, (__CFRunLoopAddItemToCommonModes), (void *)context);
-            CFRelease(set);
-        }
-        //以上分支的逻辑就是，如果你往kCFRunLoopCommonModes里面添加一个source，那么所有_commonModes里的mode都会添加这个source
+	CFSetRef set = rl->_commonModes ? CFSetCreateCopy(kCFAllocatorSystemDefault, rl->_commonModes) : NULL;
+	if (NULL == rl->_commonModeItems) {
+	    rl->_commonModeItems = CFSetCreateMutable(kCFAllocatorSystemDefault, 0, &kCFTypeSetCallBacks);
+	}
+	CFSetAddValue(rl->_commonModeItems, rls);
+	if (NULL != set) {
+	    CFTypeRef context[2] = {rl, rls};
+	    /* add new item to all common-modes */
+	    CFSetApplyFunction(set, (__CFRunLoopAddItemToCommonModes), (void *)context);
+	    CFRelease(set);
+	}
     } else {
-        //根据modeName查找mode
-        CFRunLoopModeRef rlm = __CFRunLoopFindMode(rl, modeName, true);
-        //如果_sources0不存在，则初始化_sources0，_sources0和_portToV1SourceMap
-        if (NULL != rlm && NULL == rlm->_sources0) {
-            rlm->_sources0 = CFSetCreateMutable(kCFAllocatorSystemDefault, 0, &kCFTypeSetCallBacks);
-            rlm->_sources1 = CFSetCreateMutable(kCFAllocatorSystemDefault, 0, &kCFTypeSetCallBacks);
-            rlm->_portToV1SourceMap = CFDictionaryCreateMutable(kCFAllocatorSystemDefault, 0, NULL, NULL);
-        }
-        //如果_sources0和_sources1中都不包含传入的source
-        if (NULL != rlm && !CFSetContainsValue(rlm->_sources0, rls) && !CFSetContainsValue(rlm->_sources1, rls)) {
-            //如果version是0，则加到_sources0
-            if (0 == rls->_context.version0.version) {
-                CFSetAddValue(rlm->_sources0, rls);
-                //如果version是1，则加到_sources1
-            } else if (1 == rls->_context.version0.version) {
-                CFSetAddValue(rlm->_sources1, rls);
-                __CFPort src_port = rls->_context.version1.getPort(rls->_context.version1.info);
-                if (CFPORT_NULL != src_port) {
-                    //此处只有在加到source1的时候才会把souce和一个mach_port_t对应起来
-                    //可以理解为，source1可以通过内核向其端口发送消息来主动唤醒runloop
-                    CFDictionarySetValue(rlm->_portToV1SourceMap, (const void *)(uintptr_t)src_port, rls);
-                    __CFPortSetInsert(src_port, rlm->_portSet);
-                }
-            }
-            __CFRunLoopSourceLock(rls);
-            //把runloop加入到source的_runLoops中
-            if (NULL == rls->_runLoops) {
-                rls->_runLoops = CFBagCreateMutable(kCFAllocatorSystemDefault, 0, &kCFTypeBagCallBacks); // sources retain run loops!
-            }
-            CFBagAddValue(rls->_runLoops, rl);
-            __CFRunLoopSourceUnlock(rls);
-            if (0 == rls->_context.version0.version) {
-                if (NULL != rls->_context.version0.schedule) {
-                    doVer0Callout = true;
-                }
-            }
-        }
+	CFRunLoopModeRef rlm = __CFRunLoopFindMode(rl, modeName, true);
+	if (NULL != rlm && NULL == rlm->_sources0) {
+	    rlm->_sources0 = CFSetCreateMutable(kCFAllocatorSystemDefault, 0, &kCFTypeSetCallBacks);
+	    rlm->_sources1 = CFSetCreateMutable(kCFAllocatorSystemDefault, 0, &kCFTypeSetCallBacks);
+	    rlm->_portToV1SourceMap = CFDictionaryCreateMutable(kCFAllocatorSystemDefault, 0, NULL, NULL);
+	}
+	if (NULL != rlm && !CFSetContainsValue(rlm->_sources0, rls) && !CFSetContainsValue(rlm->_sources1, rls)) {
+	    if (0 == rls->_context.version0.version) {
+	        CFSetAddValue(rlm->_sources0, rls);
+	    } else if (1 == rls->_context.version0.version) {
+	        CFSetAddValue(rlm->_sources1, rls);
+		__CFPort src_port = rls->_context.version1.getPort(rls->_context.version1.info);
+		if (CFPORT_NULL != src_port) {
+		    CFDictionarySetValue(rlm->_portToV1SourceMap, (const void *)(uintptr_t)src_port, rls);
+		    __CFPortSetInsert(src_port, rlm->_portSet);
+	        }
+	    }
+	    __CFRunLoopSourceLock(rls);
+	    if (NULL == rls->_runLoops) {
+	        rls->_runLoops = CFBagCreateMutable(kCFAllocatorSystemDefault, 0, &kCFTypeBagCallBacks); // sources retain run loops!
+	    }
+	    CFBagAddValue(rls->_runLoops, rl);
+	    __CFRunLoopSourceUnlock(rls);
+	    if (0 == rls->_context.version0.version) {
+	        if (NULL != rls->_context.version0.schedule) {
+	            doVer0Callout = true;
+	        }
+	    }
+	}
         if (NULL != rlm) {
-            __CFRunLoopModeUnlock(rlm);
-        }
+	    __CFRunLoopModeUnlock(rlm);
+	}
     }
     __CFRunLoopUnlock(rl);
     if (doVer0Callout) {
@@ -2978,56 +2848,54 @@ void CFRunLoopAddSource(CFRunLoopRef rl, CFRunLoopSourceRef rls, CFStringRef mod
         // to do this after unlocking the run loop and mode locks, to avoid deadlocks
         // where the source wants to take a lock which is already held in another
         // thread which is itself waiting for a run loop/mode lock
-        rls->_context.version0.schedule(rls->_context.version0.info, rl, modeName);	/* CALLOUT */
+	rls->_context.version0.schedule(rls->_context.version0.info, rl, modeName);	/* CALLOUT */
     }
 }
 
-//移除source
 void CFRunLoopRemoveSource(CFRunLoopRef rl, CFRunLoopSourceRef rls, CFStringRef modeName) {	/* DOES CALLOUT */
     CHECK_FOR_FORK();
     Boolean doVer0Callout = false, doRLSRelease = false;
     __CFRunLoopLock(rl);
-    //如果是kCFRunLoopCommonModes，则从_commonModes的所有mode中移除该source
     if (modeName == kCFRunLoopCommonModes) {
-        if (NULL != rl->_commonModeItems && CFSetContainsValue(rl->_commonModeItems, rls)) {
-            CFSetRef set = rl->_commonModes ? CFSetCreateCopy(kCFAllocatorSystemDefault, rl->_commonModes) : NULL;
-            CFSetRemoveValue(rl->_commonModeItems, rls);
-            if (NULL != set) {
-                CFTypeRef context[2] = {rl, rls};
-                /* remove new item from all common-modes */
-                CFSetApplyFunction(set, (__CFRunLoopRemoveItemFromCommonModes), (void *)context);
-                CFRelease(set);
-            }
-        } else {
-        }
+	if (NULL != rl->_commonModeItems && CFSetContainsValue(rl->_commonModeItems, rls)) {
+	    CFSetRef set = rl->_commonModes ? CFSetCreateCopy(kCFAllocatorSystemDefault, rl->_commonModes) : NULL;
+	    CFSetRemoveValue(rl->_commonModeItems, rls);
+	    if (NULL != set) {
+		CFTypeRef context[2] = {rl, rls};
+		/* remove new item from all common-modes */
+		CFSetApplyFunction(set, (__CFRunLoopRemoveItemFromCommonModes), (void *)context);
+		CFRelease(set);
+	    }
+	} else {
+	}
     } else {
-        CFRunLoopModeRef rlm = __CFRunLoopFindMode(rl, modeName, false);
-        if (NULL != rlm && ((NULL != rlm->_sources0 && CFSetContainsValue(rlm->_sources0, rls)) || (NULL != rlm->_sources1 && CFSetContainsValue(rlm->_sources1, rls)))) {
-            CFRetain(rls);
-            if (1 == rls->_context.version0.version) {
-                __CFPort src_port = rls->_context.version1.getPort(rls->_context.version1.info);
+	CFRunLoopModeRef rlm = __CFRunLoopFindMode(rl, modeName, false);
+	if (NULL != rlm && ((NULL != rlm->_sources0 && CFSetContainsValue(rlm->_sources0, rls)) || (NULL != rlm->_sources1 && CFSetContainsValue(rlm->_sources1, rls)))) {
+	    CFRetain(rls);
+	    if (1 == rls->_context.version0.version) {
+		__CFPort src_port = rls->_context.version1.getPort(rls->_context.version1.info);
                 if (CFPORT_NULL != src_port) {
-                    CFDictionaryRemoveValue(rlm->_portToV1SourceMap, (const void *)(uintptr_t)src_port);
+		    CFDictionaryRemoveValue(rlm->_portToV1SourceMap, (const void *)(uintptr_t)src_port);
                     __CFPortSetRemove(src_port, rlm->_portSet);
                 }
-            }
-            CFSetRemoveValue(rlm->_sources0, rls);
-            CFSetRemoveValue(rlm->_sources1, rls);
+	    }
+	    CFSetRemoveValue(rlm->_sources0, rls);
+	    CFSetRemoveValue(rlm->_sources1, rls);
             __CFRunLoopSourceLock(rls);
             if (NULL != rls->_runLoops) {
                 CFBagRemoveValue(rls->_runLoops, rl);
             }
             __CFRunLoopSourceUnlock(rls);
-            if (0 == rls->_context.version0.version) {
-                if (NULL != rls->_context.version0.cancel) {
-                    doVer0Callout = true;
-                }
-            }
-            doRLSRelease = true;
-        }
+	    if (0 == rls->_context.version0.version) {
+	        if (NULL != rls->_context.version0.cancel) {
+	            doVer0Callout = true;
+	        }
+	    }
+	    doRLSRelease = true;
+	}
         if (NULL != rlm) {
-            __CFRunLoopModeUnlock(rlm);
-        }
+	    __CFRunLoopModeUnlock(rlm);
+	}
     }
     __CFRunLoopUnlock(rl);
     if (doVer0Callout) {
@@ -3058,31 +2926,31 @@ static void __CFRunLoopRemoveAllSources(CFRunLoopRef rl, CFStringRef modeName) {
     CFRunLoopModeRef rlm;
     __CFRunLoopLock(rl);
     if (modeName == kCFRunLoopCommonModes) {
-        if (NULL != rl->_commonModeItems) {
-            CFSetRef set = rl->_commonModes ? CFSetCreateCopy(kCFAllocatorSystemDefault, rl->_commonModes) : NULL;
-            if (NULL != set) {
+	if (NULL != rl->_commonModeItems) {
+	    CFSetRef set = rl->_commonModes ? CFSetCreateCopy(kCFAllocatorSystemDefault, rl->_commonModes) : NULL;
+	    if (NULL != set) {
                 CFSetApplyFunction(set, (__CFRunLoopRemoveSourcesFromCommonMode), (void *)rl);
-                CFRelease(set);
-            }
-        } else {
-        }
+		CFRelease(set);
+	    }
+	} else {
+	}
     } else {
-        rlm = __CFRunLoopFindMode(rl, modeName, false);
-        if (NULL != rlm && NULL != rlm->_sources0) {
-            CFSetRef set = CFSetCreateCopy(kCFAllocatorSystemDefault, rlm->_sources0);
+	rlm = __CFRunLoopFindMode(rl, modeName, false);
+	if (NULL != rlm && NULL != rlm->_sources0) {
+	    CFSetRef set = CFSetCreateCopy(kCFAllocatorSystemDefault, rlm->_sources0);
             CFTypeRef context[2] = {rl, modeName};
             CFSetApplyFunction(set, (__CFRunLoopRemoveSourceFromMode), (void *)context);
-            CFRelease(set);
-        }
-        if (NULL != rlm && NULL != rlm->_sources1) {
-            CFSetRef set = CFSetCreateCopy(kCFAllocatorSystemDefault, rlm->_sources1);
+	    CFRelease(set);
+	}
+	if (NULL != rlm && NULL != rlm->_sources1) {
+	    CFSetRef set = CFSetCreateCopy(kCFAllocatorSystemDefault, rlm->_sources1);
             CFTypeRef context[2] = {rl, modeName};
             CFSetApplyFunction(set, (__CFRunLoopRemoveSourceFromMode), (void *)context);
-            CFRelease(set);
-        }
+	    CFRelease(set);
+	}
         if (NULL != rlm) {
-            __CFRunLoopModeUnlock(rlm);
-        }
+	    __CFRunLoopModeUnlock(rlm);
+	}
     }
     __CFRunLoopUnlock(rl);
 }
@@ -3093,48 +2961,46 @@ Boolean CFRunLoopContainsObserver(CFRunLoopRef rl, CFRunLoopObserverRef rlo, CFS
     Boolean hasValue = false;
     __CFRunLoopLock(rl);
     if (modeName == kCFRunLoopCommonModes) {
-        if (NULL != rl->_commonModeItems) {
-            hasValue = CFSetContainsValue(rl->_commonModeItems, rlo);
-        }
+	if (NULL != rl->_commonModeItems) {
+	    hasValue = CFSetContainsValue(rl->_commonModeItems, rlo);
+	}
     } else {
-        rlm = __CFRunLoopFindMode(rl, modeName, false);
-        if (NULL != rlm && NULL != rlm->_observers) {
-            hasValue = CFArrayContainsValue(rlm->_observers, CFRangeMake(0, CFArrayGetCount(rlm->_observers)), rlo);
-        }
+	rlm = __CFRunLoopFindMode(rl, modeName, false);
+	if (NULL != rlm && NULL != rlm->_observers) {
+	    hasValue = CFArrayContainsValue(rlm->_observers, CFRangeMake(0, CFArrayGetCount(rlm->_observers)), rlo);
+	}
         if (NULL != rlm) {
-            __CFRunLoopModeUnlock(rlm);
-        }
+	    __CFRunLoopModeUnlock(rlm);
+	}
     }
     __CFRunLoopUnlock(rl);
     return hasValue;
 }
 
-//添加通知
 void CFRunLoopAddObserver(CFRunLoopRef rl, CFRunLoopObserverRef rlo, CFStringRef modeName) {
     CHECK_FOR_FORK();
     CFRunLoopModeRef rlm;
     if (__CFRunLoopIsDeallocating(rl)) return;
     if (!__CFIsValid(rlo) || (NULL != rlo->_runLoop && rlo->_runLoop != rl)) return;
     __CFRunLoopLock(rl);
-    //如果是往kCFRunLoopCommonModes中添加Observer，则_commonModes中的所有mode都添加该Observer
     if (modeName == kCFRunLoopCommonModes) {
-        CFSetRef set = rl->_commonModes ? CFSetCreateCopy(kCFAllocatorSystemDefault, rl->_commonModes) : NULL;
-        if (NULL == rl->_commonModeItems) {
-            rl->_commonModeItems = CFSetCreateMutable(kCFAllocatorSystemDefault, 0, &kCFTypeSetCallBacks);
-        }
-        CFSetAddValue(rl->_commonModeItems, rlo);
-        if (NULL != set) {
-            CFTypeRef context[2] = {rl, rlo};
-            /* add new item to all common-modes */
-            CFSetApplyFunction(set, (__CFRunLoopAddItemToCommonModes), (void *)context);
-            CFRelease(set);
-        }
+	CFSetRef set = rl->_commonModes ? CFSetCreateCopy(kCFAllocatorSystemDefault, rl->_commonModes) : NULL;
+	if (NULL == rl->_commonModeItems) {
+	    rl->_commonModeItems = CFSetCreateMutable(kCFAllocatorSystemDefault, 0, &kCFTypeSetCallBacks);
+	}
+	CFSetAddValue(rl->_commonModeItems, rlo);
+	if (NULL != set) {
+	    CFTypeRef context[2] = {rl, rlo};
+	    /* add new item to all common-modes */
+	    CFSetApplyFunction(set, (__CFRunLoopAddItemToCommonModes), (void *)context);
+	    CFRelease(set);
+	}
     } else {
-        rlm = __CFRunLoopFindMode(rl, modeName, true);
-        if (NULL != rlm && NULL == rlm->_observers) {
-            rlm->_observers = CFArrayCreateMutable(kCFAllocatorSystemDefault, 0, &kCFTypeArrayCallBacks);
-        }
-        if (NULL != rlm && !CFArrayContainsValue(rlm->_observers, CFRangeMake(0, CFArrayGetCount(rlm->_observers)), rlo)) {
+	rlm = __CFRunLoopFindMode(rl, modeName, true);
+	if (NULL != rlm && NULL == rlm->_observers) {
+	    rlm->_observers = CFArrayCreateMutable(kCFAllocatorSystemDefault, 0, &kCFTypeArrayCallBacks);
+	}
+	if (NULL != rlm && !CFArrayContainsValue(rlm->_observers, CFRangeMake(0, CFArrayGetCount(rlm->_observers)), rlo)) {
             Boolean inserted = false;
             for (CFIndex idx = CFArrayGetCount(rlm->_observers); idx--; ) {
                 CFRunLoopObserverRef obs = (CFRunLoopObserverRef)CFArrayGetValueAtIndex(rlm->_observers, idx);
@@ -3145,14 +3011,14 @@ void CFRunLoopAddObserver(CFRunLoopRef rl, CFRunLoopObserverRef rlo, CFStringRef
                 }
             }
             if (!inserted) {
-                CFArrayInsertValueAtIndex(rlm->_observers, 0, rlo);
+	        CFArrayInsertValueAtIndex(rlm->_observers, 0, rlo);
             }
-            rlm->_observerMask |= rlo->_activities;
-            __CFRunLoopObserverSchedule(rlo, rl, rlm);
-        }
+	    rlm->_observerMask |= rlo->_activities;
+	    __CFRunLoopObserverSchedule(rlo, rl, rlm);
+	}
         if (NULL != rlm) {
-            __CFRunLoopModeUnlock(rlm);
-        }
+	    __CFRunLoopModeUnlock(rlm);
+	}
     }
     __CFRunLoopUnlock(rl);
 }
@@ -3162,31 +3028,31 @@ void CFRunLoopRemoveObserver(CFRunLoopRef rl, CFRunLoopObserverRef rlo, CFString
     CFRunLoopModeRef rlm;
     __CFRunLoopLock(rl);
     if (modeName == kCFRunLoopCommonModes) {
-        if (NULL != rl->_commonModeItems && CFSetContainsValue(rl->_commonModeItems, rlo)) {
-            CFSetRef set = rl->_commonModes ? CFSetCreateCopy(kCFAllocatorSystemDefault, rl->_commonModes) : NULL;
-            CFSetRemoveValue(rl->_commonModeItems, rlo);
-            if (NULL != set) {
-                CFTypeRef context[2] = {rl, rlo};
-                /* remove new item from all common-modes */
-                CFSetApplyFunction(set, (__CFRunLoopRemoveItemFromCommonModes), (void *)context);
-                CFRelease(set);
-            }
-        } else {
-        }
+	if (NULL != rl->_commonModeItems && CFSetContainsValue(rl->_commonModeItems, rlo)) {
+	    CFSetRef set = rl->_commonModes ? CFSetCreateCopy(kCFAllocatorSystemDefault, rl->_commonModes) : NULL;
+	    CFSetRemoveValue(rl->_commonModeItems, rlo);
+	    if (NULL != set) {
+		CFTypeRef context[2] = {rl, rlo};
+		/* remove new item from all common-modes */
+		CFSetApplyFunction(set, (__CFRunLoopRemoveItemFromCommonModes), (void *)context);
+		CFRelease(set);
+	    }
+	} else {
+	}
     } else {
-        rlm = __CFRunLoopFindMode(rl, modeName, false);
-        if (NULL != rlm && NULL != rlm->_observers) {
-            CFRetain(rlo);
+	rlm = __CFRunLoopFindMode(rl, modeName, false);
+	if (NULL != rlm && NULL != rlm->_observers) {
+	    CFRetain(rlo);
             CFIndex idx = CFArrayGetFirstIndexOfValue(rlm->_observers, CFRangeMake(0, CFArrayGetCount(rlm->_observers)), rlo);
             if (kCFNotFound != idx) {
                 CFArrayRemoveValueAtIndex(rlm->_observers, idx);
-                __CFRunLoopObserverCancel(rlo, rl, rlm);
+	        __CFRunLoopObserverCancel(rlo, rl, rlm);
             }
-            CFRelease(rlo);
-        }
+	    CFRelease(rlo);
+	}
         if (NULL != rlm) {
-            __CFRunLoopModeUnlock(rlm);
-        }
+	    __CFRunLoopModeUnlock(rlm);
+	}
     }
     __CFRunLoopUnlock(rl);
 }
@@ -3197,77 +3063,62 @@ Boolean CFRunLoopContainsTimer(CFRunLoopRef rl, CFRunLoopTimerRef rlt, CFStringR
     Boolean hasValue = false;
     __CFRunLoopLock(rl);
     if (modeName == kCFRunLoopCommonModes) {
-        if (NULL != rl->_commonModeItems) {
-            hasValue = CFSetContainsValue(rl->_commonModeItems, rlt);
-        }
+	if (NULL != rl->_commonModeItems) {
+	    hasValue = CFSetContainsValue(rl->_commonModeItems, rlt);
+	}
     } else {
-        CFRunLoopModeRef rlm = __CFRunLoopFindMode(rl, modeName, false);
-        if (NULL != rlm) {
+	CFRunLoopModeRef rlm = __CFRunLoopFindMode(rl, modeName, false);
+	if (NULL != rlm) {
             if (NULL != rlm->_timers) {
                 CFIndex idx = CFArrayGetFirstIndexOfValue(rlm->_timers, CFRangeMake(0, CFArrayGetCount(rlm->_timers)), rlt);
                 hasValue = (kCFNotFound != idx);
             }
-            __CFRunLoopModeUnlock(rlm);
-        }
+	    __CFRunLoopModeUnlock(rlm);
+	}
     }
     __CFRunLoopUnlock(rl);
     return hasValue;
 }
 
-//添加定时器
-void CFRunLoopAddTimer(CFRunLoopRef rl, CFRunLoopTimerRef rlt, CFStringRef modeName) {
+void CFRunLoopAddTimer(CFRunLoopRef rl, CFRunLoopTimerRef rlt, CFStringRef modeName) {    
     CHECK_FOR_FORK();
     if (__CFRunLoopIsDeallocating(rl)) return;
     if (!__CFIsValid(rlt) || (NULL != rlt->_runLoop && rlt->_runLoop != rl)) return;
     __CFRunLoopLock(rl);
-    //如果是往kCFRunLoopCommonModes中添加timer，则_commonModes中的所有mode都添加该timer
     if (modeName == kCFRunLoopCommonModes) {
-        CFSetRef set = rl->_commonModes ? CFSetCreateCopy(kCFAllocatorSystemDefault, rl->_commonModes) : NULL;
-        if (NULL == rl->_commonModeItems) {
-            rl->_commonModeItems = CFSetCreateMutable(kCFAllocatorSystemDefault, 0, &kCFTypeSetCallBacks);
-        }
-        CFSetAddValue(rl->_commonModeItems, rlt);
-        if (NULL != set) {
-            CFTypeRef context[2] = {rl, rlt};
-            /* add new item to all common-modes */
-            CFSetApplyFunction(set, (__CFRunLoopAddItemToCommonModes), (void *)context);
-            CFRelease(set);
-        }
+	CFSetRef set = rl->_commonModes ? CFSetCreateCopy(kCFAllocatorSystemDefault, rl->_commonModes) : NULL;
+	if (NULL == rl->_commonModeItems) {
+	    rl->_commonModeItems = CFSetCreateMutable(kCFAllocatorSystemDefault, 0, &kCFTypeSetCallBacks);
+	}
+	CFSetAddValue(rl->_commonModeItems, rlt);
+	if (NULL != set) {
+	    CFTypeRef context[2] = {rl, rlt};
+	    /* add new item to all common-modes */
+	    CFSetApplyFunction(set, (__CFRunLoopAddItemToCommonModes), (void *)context);
+	    CFRelease(set);
+	}
     } else {
-        //获取modeName对应的mode
-        CFRunLoopModeRef rlm = __CFRunLoopFindMode(rl, modeName, true);
-        //如果mode存在
-        if (NULL != rlm) {
-            //如果mode的_timers为空，则先初始化_timers
+	CFRunLoopModeRef rlm = __CFRunLoopFindMode(rl, modeName, true);
+	if (NULL != rlm) {
             if (NULL == rlm->_timers) {
                 CFArrayCallBacks cb = kCFTypeArrayCallBacks;
                 cb.equal = NULL;
                 rlm->_timers = CFArrayCreateMutable(kCFAllocatorSystemDefault, 0, &cb);
             }
-        }
-        //如果mode存在 && 该timer的_rlModes中不包含该_name，也就是说这个mode中没有这个tiemr
-        if (NULL != rlm && !CFSetContainsValue(rlt->_rlModes, rlm->_name)) {
+	}
+	if (NULL != rlm && !CFSetContainsValue(rlt->_rlModes, rlm->_name)) {
             __CFRunLoopTimerLock(rlt);
-            //如果timer的runloop为空
             if (NULL == rlt->_runLoop) {
-                //则把传入的runloop 赋值给timer对应的runloop
-                rlt->_runLoop = rl;
-            }
-            //如果timer的runloop和传入的runloop不一样
-            else if (rl != rlt->_runLoop) {
-                //则什么都不处理，直接return
-                //也就是说一个timer只能被添加到一个runloop中，但是可以被添加到runloop的多个mode中
-                //PS:经过测试验证,当把一个timer添加到主线程的runloop之后，再往子线程的runloop添加该timer没有效果，无法添加，timer一直运行在主线程
+		rlt->_runLoop = rl;
+  	    } else if (rl != rlt->_runLoop) {
                 __CFRunLoopTimerUnlock(rlt);
-                __CFRunLoopModeUnlock(rlm);
+	        __CFRunLoopModeUnlock(rlm);
                 __CFRunLoopUnlock(rl);
-                return;
-            }
-            //把modeName记录到timer的_rlModes中
-            CFSetAddValue(rlt->_rlModes, rlm->_name);
+		return;
+	    }
+  	    CFSetAddValue(rlt->_rlModes, rlm->_name);
             __CFRunLoopTimerUnlock(rlt);
             __CFRunLoopTimerFireTSRLock();
-            //注册timer，向mode的timers中添加timer
             __CFRepositionTimerInMode(rlm, rlt, false);
             __CFRunLoopTimerFireTSRUnlock();
             if (!_CFExecutableLinkedOnOrAfter(CFSystemVersionLion)) {
@@ -3275,10 +3126,10 @@ void CFRunLoopAddTimer(CFRunLoopRef rl, CFRunLoopTimerRef rlt, CFStringRef modeN
                 // backwards compatibility due to the change in timer handling...
                 if (rl != CFRunLoopGetCurrent()) CFRunLoopWakeUp(rl);
             }
-        }
+	}
         if (NULL != rlm) {
-            __CFRunLoopModeUnlock(rlm);
-        }
+	    __CFRunLoopModeUnlock(rlm);
+	}
     }
     __CFRunLoopUnlock(rl);
 }
@@ -3287,19 +3138,19 @@ void CFRunLoopRemoveTimer(CFRunLoopRef rl, CFRunLoopTimerRef rlt, CFStringRef mo
     CHECK_FOR_FORK();
     __CFRunLoopLock(rl);
     if (modeName == kCFRunLoopCommonModes) {
-        if (NULL != rl->_commonModeItems && CFSetContainsValue(rl->_commonModeItems, rlt)) {
-            CFSetRef set = rl->_commonModes ? CFSetCreateCopy(kCFAllocatorSystemDefault, rl->_commonModes) : NULL;
-            CFSetRemoveValue(rl->_commonModeItems, rlt);
-            if (NULL != set) {
-                CFTypeRef context[2] = {rl, rlt};
-                /* remove new item from all common-modes */
-                CFSetApplyFunction(set, (__CFRunLoopRemoveItemFromCommonModes), (void *)context);
-                CFRelease(set);
-            }
-        } else {
-        }
+	if (NULL != rl->_commonModeItems && CFSetContainsValue(rl->_commonModeItems, rlt)) {
+	    CFSetRef set = rl->_commonModes ? CFSetCreateCopy(kCFAllocatorSystemDefault, rl->_commonModes) : NULL;
+	    CFSetRemoveValue(rl->_commonModeItems, rlt);
+	    if (NULL != set) {
+		CFTypeRef context[2] = {rl, rlt};
+		/* remove new item from all common-modes */
+		CFSetApplyFunction(set, (__CFRunLoopRemoveItemFromCommonModes), (void *)context);
+		CFRelease(set);
+	    }
+	} else {
+	}
     } else {
-        CFRunLoopModeRef rlm = __CFRunLoopFindMode(rl, modeName, false);
+	CFRunLoopModeRef rlm = __CFRunLoopFindMode(rl, modeName, false);
         CFIndex idx = kCFNotFound;
         CFMutableArrayRef timerList = NULL;
         if (NULL != rlm) {
@@ -3315,12 +3166,12 @@ void CFRunLoopRemoveTimer(CFRunLoopRef rl, CFRunLoopTimerRef rlt, CFStringRef mo
                 rlt->_runLoop = NULL;
             }
             __CFRunLoopTimerUnlock(rlt);
-            CFArrayRemoveValueAtIndex(timerList, idx);
+	    CFArrayRemoveValueAtIndex(timerList, idx);
             __CFArmNextTimerInMode(rlm, rl);
         }
         if (NULL != rlm) {
-            __CFRunLoopModeUnlock(rlm);
-        }
+	    __CFRunLoopModeUnlock(rlm);
+	}
     }
     __CFRunLoopUnlock(rl);
 }
@@ -3339,14 +3190,14 @@ static Boolean __CFRunLoopSourceEqual(CFTypeRef cf1, CFTypeRef cf2) {	/* DOES CA
     if (0 == rls1->_context.version0.version && rls1->_context.version0.perform != rls2->_context.version0.perform) return false;
     if (1 == rls1->_context.version0.version && rls1->_context.version1.perform != rls2->_context.version1.perform) return false;
     if (rls1->_context.version0.equal)
-        return rls1->_context.version0.equal(rls1->_context.version0.info, rls2->_context.version0.info);
+	return rls1->_context.version0.equal(rls1->_context.version0.info, rls2->_context.version0.info);
     return (rls1->_context.version0.info == rls2->_context.version0.info);
 }
 
 static CFHashCode __CFRunLoopSourceHash(CFTypeRef cf) {	/* DOES CALLOUT */
     CFRunLoopSourceRef rls = (CFRunLoopSourceRef)cf;
     if (rls->_context.version0.hash)
-        return rls->_context.version0.hash(rls->_context.version0.info);
+	return rls->_context.version0.hash(rls->_context.version0.info);
     return (CFHashCode)rls->_context.version0.info;
 }
 
@@ -3355,16 +3206,16 @@ static CFStringRef __CFRunLoopSourceCopyDescription(CFTypeRef cf) {	/* DOES CALL
     CFStringRef result;
     CFStringRef contextDesc = NULL;
     if (NULL != rls->_context.version0.copyDescription) {
-        contextDesc = rls->_context.version0.copyDescription(rls->_context.version0.info);
+	contextDesc = rls->_context.version0.copyDescription(rls->_context.version0.info);
     }
     if (NULL == contextDesc) {
-        void *addr = rls->_context.version0.version == 0 ? (void *)rls->_context.version0.perform : (rls->_context.version0.version == 1 ? (void *)rls->_context.version1.perform : NULL);
+	void *addr = rls->_context.version0.version == 0 ? (void *)rls->_context.version0.perform : (rls->_context.version0.version == 1 ? (void *)rls->_context.version1.perform : NULL);
 #if DEPLOYMENT_TARGET_WINDOWS
-        contextDesc = CFStringCreateWithFormat(kCFAllocatorSystemDefault, NULL, CFSTR("<CFRunLoopSource context>{version = %ld, info = %p, callout = %p}"), rls->_context.version0.version, rls->_context.version0.info, addr);
+	contextDesc = CFStringCreateWithFormat(kCFAllocatorSystemDefault, NULL, CFSTR("<CFRunLoopSource context>{version = %ld, info = %p, callout = %p}"), rls->_context.version0.version, rls->_context.version0.info, addr);
 #elif DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED || DEPLOYMENT_TARGET_EMBEDDED_MINI
-        Dl_info info;
-        const char *name = (dladdr(addr, &info) && info.dli_saddr == addr && info.dli_sname) ? info.dli_sname : "???";
-        contextDesc = CFStringCreateWithFormat(kCFAllocatorSystemDefault, NULL, CFSTR("<CFRunLoopSource context>{version = %ld, info = %p, callout = %s (%p)}"), rls->_context.version0.version, rls->_context.version0.info, name, addr);
+	Dl_info info;
+	const char *name = (dladdr(addr, &info) && info.dli_saddr == addr && info.dli_sname) ? info.dli_sname : "???";
+	contextDesc = CFStringCreateWithFormat(kCFAllocatorSystemDefault, NULL, CFSTR("<CFRunLoopSource context>{version = %ld, info = %p, callout = %s (%p)}"), rls->_context.version0.version, rls->_context.version0.info, name, addr);
 #endif
     }
 #if DEPLOYMENT_TARGET_WINDOWS
@@ -3380,7 +3231,7 @@ static void __CFRunLoopSourceDeallocate(CFTypeRef cf) {	/* DOES CALLOUT */
     CFRunLoopSourceRef rls = (CFRunLoopSourceRef)cf;
     CFRunLoopSourceInvalidate(rls);
     if (rls->_context.version0.release) {
-        rls->_context.version0.release(rls->_context.version0.info);
+	rls->_context.version0.release(rls->_context.version0.info);
     }
     pthread_mutex_destroy(&rls->_lock);
     memset((char *)cf + sizeof(CFRuntimeBase), 0, sizeof(struct __CFRunLoopSource) - sizeof(CFRuntimeBase));
@@ -3394,7 +3245,7 @@ static const CFRuntimeClass __CFRunLoopSourceClass = {
     __CFRunLoopSourceDeallocate,
     __CFRunLoopSourceEqual,
     __CFRunLoopSourceHash,
-    NULL,      //
+    NULL,      // 
     __CFRunLoopSourceCopyDescription
 };
 
@@ -3406,10 +3257,8 @@ CFTypeID CFRunLoopSourceGetTypeID(void) {
     return __kCFRunLoopSourceTypeID;
 }
 
-//创建Source
 CFRunLoopSourceRef CFRunLoopSourceCreate(CFAllocatorRef allocator, CFIndex order, CFRunLoopSourceContext *context) {
     CHECK_FOR_FORK();
-    //创建一个CFRunLoopSourceRef
     CFRunLoopSourceRef memory;
     uint32_t size;
     if (NULL == context) CRASH("*** NULL context value passed to CFRunLoopSourceCreate(). (%d) ***", -1);
@@ -3417,30 +3266,26 @@ CFRunLoopSourceRef CFRunLoopSourceCreate(CFAllocatorRef allocator, CFIndex order
     size = sizeof(struct __CFRunLoopSource) - sizeof(CFRuntimeBase);
     memory = (CFRunLoopSourceRef)_CFRuntimeCreateInstance(allocator, __kCFRunLoopSourceTypeID, size, NULL);
     if (NULL == memory) {
-        return NULL;
+	return NULL;
     }
-    //设置为有效状态
     __CFSetValid(memory);
-    //设置Signaled为false
     __CFRunLoopSourceUnsetSignaled(memory);
     __CFRunLoopLockInit(&memory->_lock);
     memory->_bits = 0;
     memory->_order = order;
     memory->_runLoops = NULL;
     size = 0;
-    //根据version给source0和source1初始化不同的size
     switch (context->version) {
-        case 0:
-            size = sizeof(CFRunLoopSourceContext);
-            break;
-        case 1:
-            size = sizeof(CFRunLoopSourceContext1);
-            break;
+    case 0:
+	size = sizeof(CFRunLoopSourceContext);
+	break;
+    case 1:
+	size = sizeof(CFRunLoopSourceContext1);
+	break;
     }
-    //把传入的context写入CFRunLoopSourceRef的_context
     objc_memmove_collectable(&memory->_context, context, size);
     if (context->retain) {
-        memory->_context.version0.info = (void *)context->retain(context->info);
+	memory->_context.version0.info = (void *)context->retain(context->info);
     }
     return memory;
 }
@@ -3461,15 +3306,15 @@ static void __CFRunLoopSourceRemoveFromRunLoop(const void *value, void *context)
     CFRunLoopSourceRef rls = (CFRunLoopSourceRef)params[0];
     CFIndex idx;
     if (rl == params[1]) return;
-    
+
     // CFRunLoopRemoveSource will lock the run loop while it
     // needs that, but we also lock it out here to keep
     // changes from occurring for this whole sequence.
     __CFRunLoopLock(rl);
     CFArrayRef array = CFRunLoopCopyAllModes(rl);
     for (idx = CFArrayGetCount(array); idx--;) {
-        CFStringRef modeName = (CFStringRef)CFArrayGetValueAtIndex(array, idx);
-        CFRunLoopRemoveSource(rl, rls, modeName);
+	CFStringRef modeName = (CFStringRef)CFArrayGetValueAtIndex(array, idx);
+	CFRunLoopRemoveSource(rl, rls, modeName);
     }
     CFRunLoopRemoveSource(rl, rls, kCFRunLoopCommonModes);
     __CFRunLoopUnlock(rl);
@@ -3516,12 +3361,12 @@ void CFRunLoopSourceGetContext(CFRunLoopSourceRef rls, CFRunLoopSourceContext *c
     CFAssert1(0 == context->version || 1 == context->version, __kCFLogAssertion, "%s(): context version not initialized to 0 or 1", __PRETTY_FUNCTION__);
     CFIndex size = 0;
     switch (context->version) {
-        case 0:
-            size = sizeof(CFRunLoopSourceContext);
-            break;
-        case 1:
-            size = sizeof(CFRunLoopSourceContext1);
-            break;
+    case 0:
+	size = sizeof(CFRunLoopSourceContext);
+	break;
+    case 1:
+	size = sizeof(CFRunLoopSourceContext1);
+	break;
     }
     memmove(context, &rls->_context, size);
 }
@@ -3530,7 +3375,7 @@ void CFRunLoopSourceSignal(CFRunLoopSourceRef rls) {
     CHECK_FOR_FORK();
     __CFRunLoopSourceLock(rls);
     if (__CFIsValid(rls)) {
-        __CFRunLoopSourceSetSignaled(rls);
+	__CFRunLoopSourceSetSignaled(rls);
     }
     __CFRunLoopSourceUnlock(rls);
 }
@@ -3551,7 +3396,7 @@ CF_PRIVATE void _CFRunLoopSourceWakeUpRunLoops(CFRunLoopSourceRef rls) {
     }
     __CFRunLoopSourceUnlock(rls);
     if (loops) {
-        CFBagApplyFunction(loops, __CFRunLoopSourceWakeUpLoop, NULL);
+	CFBagApplyFunction(loops, __CFRunLoopSourceWakeUpLoop, NULL);
         CFRelease(loops);
     }
 }
@@ -3563,13 +3408,13 @@ static CFStringRef __CFRunLoopObserverCopyDescription(CFTypeRef cf) {	/* DOES CA
     CFStringRef result;
     CFStringRef contextDesc = NULL;
     if (NULL != rlo->_context.copyDescription) {
-        contextDesc = rlo->_context.copyDescription(rlo->_context.info);
+	contextDesc = rlo->_context.copyDescription(rlo->_context.info);
     }
     if (!contextDesc) {
-        contextDesc = CFStringCreateWithFormat(kCFAllocatorSystemDefault, NULL, CFSTR("<CFRunLoopObserver context %p>"), rlo->_context.info);
+	contextDesc = CFStringCreateWithFormat(kCFAllocatorSystemDefault, NULL, CFSTR("<CFRunLoopObserver context %p>"), rlo->_context.info);
     }
 #if DEPLOYMENT_TARGET_WINDOWS
-    result = CFStringCreateWithFormat(kCFAllocatorSystemDefault, NULL, CFSTR("<CFRunLoopObserver %p [%p]>{valid = %s, activities = 0x%x, repeats = %s, order = %d, callout = %p, context = %@}"), cf, CFGetAllocator(rlo), __CFIsValid(rlo) ? "Yes" : "No", rlo->_activities, __CFRunLoopObserverRepeats(rlo) ? "Yes" : "No", rlo->_order, rlo->_callout, contextDesc);
+    result = CFStringCreateWithFormat(kCFAllocatorSystemDefault, NULL, CFSTR("<CFRunLoopObserver %p [%p]>{valid = %s, activities = 0x%x, repeats = %s, order = %d, callout = %p, context = %@}"), cf, CFGetAllocator(rlo), __CFIsValid(rlo) ? "Yes" : "No", rlo->_activities, __CFRunLoopObserverRepeats(rlo) ? "Yes" : "No", rlo->_order, rlo->_callout, contextDesc);    
 #elif DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED || DEPLOYMENT_TARGET_EMBEDDED_MINI
     void *addr = rlo->_callout;
     Dl_info info;
@@ -3594,7 +3439,7 @@ static const CFRuntimeClass __CFRunLoopObserverClass = {
     __CFRunLoopObserverDeallocate,
     NULL,
     NULL,
-    NULL,      //
+    NULL,      // 
     __CFRunLoopObserverCopyDescription
 };
 
@@ -3606,49 +3451,42 @@ CFTypeID CFRunLoopObserverGetTypeID(void) {
     return __kCFRunLoopObserverTypeID;
 }
 
-//创建Observer
 CFRunLoopObserverRef CFRunLoopObserverCreate(CFAllocatorRef allocator, CFOptionFlags activities, Boolean repeats, CFIndex order, CFRunLoopObserverCallBack callout, CFRunLoopObserverContext *context) {
     CHECK_FOR_FORK();
-    //创建一个CFRunLoopObserverRef
     CFRunLoopObserverRef memory;
     UInt32 size;
     size = sizeof(struct __CFRunLoopObserver) - sizeof(CFRuntimeBase);
     memory = (CFRunLoopObserverRef)_CFRuntimeCreateInstance(allocator, __kCFRunLoopObserverTypeID, size, NULL);
     if (NULL == memory) {
-        return NULL;
+	return NULL;
     }
-    //设置Observer为有效状态
     __CFSetValid(memory);
-    //设置为非firing状态
     __CFRunLoopObserverUnsetFiring(memory);
-    //根据参数设置是否repeats
     if (repeats) {
-        __CFRunLoopObserverSetRepeats(memory);
+	__CFRunLoopObserverSetRepeats(memory);
     } else {
-        __CFRunLoopObserverUnsetRepeats(memory);
+	__CFRunLoopObserverUnsetRepeats(memory);
     }
     __CFRunLoopLockInit(&memory->_lock);
-    //初始化各项数值
     memory->_runLoop = NULL;
     memory->_rlCount = 0;
     memory->_activities = activities;
     memory->_order = order;
-    //Observer的回调
     memory->_callout = callout;
     if (context) {
-        if (context->retain) {
-            memory->_context.info = (void *)context->retain(context->info);
-        } else {
-            memory->_context.info = context->info;
-        }
-        memory->_context.retain = context->retain;
-        memory->_context.release = context->release;
-        memory->_context.copyDescription = context->copyDescription;
+	if (context->retain) {
+	    memory->_context.info = (void *)context->retain(context->info);
+	} else {
+	    memory->_context.info = context->info;
+	}
+	memory->_context.retain = context->retain;
+	memory->_context.release = context->release;
+	memory->_context.copyDescription = context->copyDescription;
     } else {
-        memory->_context.info = 0;
-        memory->_context.retain = 0;
-        memory->_context.release = 0;
-        memory->_context.copyDescription = 0;
+	memory->_context.info = 0;
+	memory->_context.retain = 0;
+	memory->_context.release = 0;
+	memory->_context.copyDescription = 0;
     }
     return memory;
 }
@@ -3660,7 +3498,7 @@ static void _runLoopObserverWithBlockContext(CFRunLoopObserverRef observer, CFRu
 }
 
 CFRunLoopObserverRef CFRunLoopObserverCreateWithHandler(CFAllocatorRef allocator, CFOptionFlags activities, Boolean repeats, CFIndex order,
-                                                        void (^block) (CFRunLoopObserverRef observer, CFRunLoopActivity activity)) {
+                                                      void (^block) (CFRunLoopObserverRef observer, CFRunLoopActivity activity)) {
     CFRunLoopObserverContext blockContext;
     blockContext.version = 0;
     blockContext.info = (void *)block;
@@ -3714,7 +3552,6 @@ void CFRunLoopObserverInvalidate(CFRunLoopObserverRef rlo) {    /* DOES CALLOUT 
                 CFStringRef modeName = (CFStringRef)CFArrayGetValueAtIndex(array, idx);
                 CFRunLoopRemoveObserver(rl, rlo, modeName);
             }
-            //从commonModes中的所有mode中移除该Observer
             CFRunLoopRemoveObserver(rl, rlo, kCFRunLoopCommonModes);
             __CFRunLoopUnlock(rl);
             CFRelease(array);
@@ -3748,10 +3585,10 @@ static CFStringRef __CFRunLoopTimerCopyDescription(CFTypeRef cf) {	/* DOES CALLO
     CFRunLoopTimerRef rlt = (CFRunLoopTimerRef)cf;
     CFStringRef contextDesc = NULL;
     if (NULL != rlt->_context.copyDescription) {
-        contextDesc = rlt->_context.copyDescription(rlt->_context.info);
+	contextDesc = rlt->_context.copyDescription(rlt->_context.info);
     }
     if (NULL == contextDesc) {
-        contextDesc = CFStringCreateWithFormat(kCFAllocatorSystemDefault, NULL, CFSTR("<CFRunLoopTimer context %p>"), rlt->_context.info);
+	contextDesc = CFStringCreateWithFormat(kCFAllocatorSystemDefault, NULL, CFSTR("<CFRunLoopTimer context %p>"), rlt->_context.info);
     }
     void *addr = (void *)rlt->_callout;
     char libraryName[2048];
@@ -3760,27 +3597,27 @@ static CFStringRef __CFRunLoopTimerCopyDescription(CFTypeRef cf) {	/* DOES CALLO
     libraryName[0] = '?'; libraryName[1] = '\0';
     functionName[0] = '?'; functionName[1] = '\0';
     CFStringRef result = CFStringCreateWithFormat(kCFAllocatorSystemDefault, NULL,
-                                                  CFSTR("<CFRunLoopTimer %p [%p]>{valid = %s, firing = %s, interval = %0.09g, tolerance = %0.09g, next fire date = %0.09g (%0.09g @ %lld), callout = %s (%p / %p) (%s), context = %@}"),
-                                                  cf,
-                                                  CFGetAllocator(rlt),
-                                                  __CFIsValid(rlt) ? "Yes" : "No",
-                                                  __CFRunLoopTimerIsFiring(rlt) ? "Yes" : "No",
-                                                  rlt->_interval,
-                                                  rlt->_tolerance,
-                                                  rlt->_nextFireDate,
-                                                  rlt->_nextFireDate - CFAbsoluteTimeGetCurrent(),
-                                                  rlt->_fireTSR,
-                                                  functionName,
-                                                  addr,
-                                                  functionPtr,
-                                                  libraryName,
-                                                  contextDesc);
+        CFSTR("<CFRunLoopTimer %p [%p]>{valid = %s, firing = %s, interval = %0.09g, tolerance = %0.09g, next fire date = %0.09g (%0.09g @ %lld), callout = %s (%p / %p) (%s), context = %@}"),
+              cf,
+              CFGetAllocator(rlt),
+              __CFIsValid(rlt) ? "Yes" : "No",
+              __CFRunLoopTimerIsFiring(rlt) ? "Yes" : "No",
+              rlt->_interval,
+              rlt->_tolerance,
+              rlt->_nextFireDate,
+              rlt->_nextFireDate - CFAbsoluteTimeGetCurrent(),
+              rlt->_fireTSR,
+              functionName,
+              addr,
+              functionPtr,
+              libraryName,
+              contextDesc);
     CFRelease(contextDesc);
     return result;
 }
 
 static void __CFRunLoopTimerDeallocate(CFTypeRef cf) {	/* DOES CALLOUT */
-    //CFLog(6, CFSTR("__CFRunLoopTimerDeallocate(%p)"), cf);
+//CFLog(6, CFSTR("__CFRunLoopTimerDeallocate(%p)"), cf);
     CFRunLoopTimerRef rlt = (CFRunLoopTimerRef)cf;
     __CFRunLoopTimerSetDeallocating(rlt);
     CFRunLoopTimerInvalidate(rlt);	/* DOES CALLOUT */
@@ -3797,7 +3634,7 @@ static const CFRuntimeClass __CFRunLoopTimerClass = {
     __CFRunLoopTimerDeallocate,
     NULL,	// equal
     NULL,
-    NULL,      //
+    NULL,      // 
     __CFRunLoopTimerCopyDescription
 };
 
@@ -3809,78 +3646,51 @@ CFTypeID CFRunLoopTimerGetTypeID(void) {
     return __kCFRunLoopTimerTypeID;
 }
 
-//创建timer
-/*
-  1.创建CFRunLoopTimerRef
-  2.标记为valid状态为true，firing状态为false
-  3.设置fireDate
-  4.配置结构体中其他数据
- */
 CFRunLoopTimerRef CFRunLoopTimerCreate(CFAllocatorRef allocator, CFAbsoluteTime fireDate, CFTimeInterval interval, CFOptionFlags flags, CFIndex order, CFRunLoopTimerCallBack callout, CFRunLoopTimerContext *context) {
-    CHECK_FOR_FORK();
-    
-    //创建一个CFRunLoopTimerRef
+    CHECK_FOR_FORK();    
     CFRunLoopTimerRef memory;
     UInt32 size;
     size = sizeof(struct __CFRunLoopTimer) - sizeof(CFRuntimeBase);
     memory = (CFRunLoopTimerRef)_CFRuntimeCreateInstance(allocator, __kCFRunLoopTimerTypeID, size, NULL);
     if (NULL == memory) {
-        return NULL;
+	return NULL;
     }
-    
-    //标记timer valid状态为true
     __CFSetValid(memory);
-    //设置firing状态为false
     __CFRunLoopTimerUnsetFiring(memory);
     __CFRunLoopLockInit(&memory->_lock);
     memory->_runLoop = NULL;
-    //初始化modes数组
     memory->_rlModes = CFSetCreateMutable(kCFAllocatorSystemDefault, 0, &kCFTypeSetCallBacks);
     memory->_order = order;
-    //设置timer的时间间隔，如果为小于0的非法数据则设置为0
     if (interval < 0.0) interval = 0.0;
     memory->_interval = interval;
-    //时间偏差初始化为0
     memory->_tolerance = 0.0;
-    //设置tiemr下一次执行任务的时间
     if (TIMER_DATE_LIMIT < fireDate) fireDate = TIMER_DATE_LIMIT;
     memory->_nextFireDate = fireDate;
-    //_fireTSR初始化为0
     memory->_fireTSR = 0ULL;
-    //系统启动后CPU运行的时间（滴答数）
     uint64_t now2 = mach_absolute_time();
-    //当前时间
     CFAbsoluteTime now1 = CFAbsoluteTimeGetCurrent();
-    //如果启动时间比当前时间小
     if (fireDate < now1) {
-        //则设置为立刻执行
-        memory->_fireTSR = now2;
-    //如果启动时间-当前时间超出最大间隔
+	memory->_fireTSR = now2;
     } else if (TIMER_INTERVAL_LIMIT < fireDate - now1) {
-        //则设置为最大间隔之后再执行
-        memory->_fireTSR = now2 + __CFTimeIntervalToTSR(TIMER_INTERVAL_LIMIT);
-    //如果数据正常
+	memory->_fireTSR = now2 + __CFTimeIntervalToTSR(TIMER_INTERVAL_LIMIT);
     } else {
-        //则设置为从now2开始，fireDate-now1之后执行
-        memory->_fireTSR = now2 + __CFTimeIntervalToTSR(fireDate - now1);
+	memory->_fireTSR = now2 + __CFTimeIntervalToTSR(fireDate - now1);
     }
-    //timer的回调事件，每次到时间点执行的任务就是该回调
     memory->_callout = callout;
-    //配置context
     if (NULL != context) {
-        if (context->retain) {
-            memory->_context.info = (void *)context->retain(context->info);
-        } else {
-            memory->_context.info = context->info;
-        }
-        memory->_context.retain = context->retain;
-        memory->_context.release = context->release;
-        memory->_context.copyDescription = context->copyDescription;
+	if (context->retain) {
+	    memory->_context.info = (void *)context->retain(context->info);
+	} else {
+	    memory->_context.info = context->info;
+	}
+	memory->_context.retain = context->retain;
+	memory->_context.release = context->release;
+	memory->_context.copyDescription = context->copyDescription;
     } else {
-        memory->_context.info = 0;
-        memory->_context.retain = 0;
-        memory->_context.release = 0;
-        memory->_context.copyDescription = 0;
+	memory->_context.info = 0;
+	memory->_context.retain = 0;
+	memory->_context.release = 0;
+	memory->_context.copyDescription = 0;
     }
     return memory;
 }
@@ -3892,7 +3702,7 @@ static void _runLoopTimerWithBlockContext(CFRunLoopTimerRef timer, void *opaqueB
 }
 
 CFRunLoopTimerRef CFRunLoopTimerCreateWithHandler(CFAllocatorRef allocator, CFAbsoluteTime fireDate, CFTimeInterval interval, CFOptionFlags flags, CFIndex order,
-                                                  void (^block) (CFRunLoopTimerRef timer)) {
+						void (^block) (CFRunLoopTimerRef timer)) {
     
     CFRunLoopTimerContext blockContext;
     blockContext.version = 0;
@@ -3926,11 +3736,11 @@ void CFRunLoopTimerSetNextFireDate(CFRunLoopTimerRef rlt, CFAbsoluteTime fireDat
     uint64_t now2 = mach_absolute_time();
     CFAbsoluteTime now1 = CFAbsoluteTimeGetCurrent();
     if (fireDate < now1) {
-        nextFireTSR = now2;
+	nextFireTSR = now2;
     } else if (TIMER_INTERVAL_LIMIT < fireDate - now1) {
-        nextFireTSR = now2 + __CFTimeIntervalToTSR(TIMER_INTERVAL_LIMIT);
+	nextFireTSR = now2 + __CFTimeIntervalToTSR(TIMER_INTERVAL_LIMIT);
     } else {
-        nextFireTSR = now2 + __CFTimeIntervalToTSR(fireDate - now1);
+	nextFireTSR = now2 + __CFTimeIntervalToTSR(fireDate - now1);
     }
     __CFRunLoopTimerLock(rlt);
     if (NULL != rlt->_runLoop) {
@@ -3948,15 +3758,15 @@ void CFRunLoopTimerSetNextFireDate(CFRunLoopTimerRef rlt, CFAbsoluteTime fireDat
         __CFRunLoopTimerUnlock(rlt);
         __CFRunLoopLock(rl);
         for (CFIndex idx = 0; idx < cnt; idx++) {
-            CFStringRef name = (CFStringRef)modes[idx];
+	    CFStringRef name = (CFStringRef)modes[idx];
             modes[idx] = __CFRunLoopFindMode(rl, name, false);
-            CFRelease(name);
+	    CFRelease(name);
         }
         __CFRunLoopTimerFireTSRLock();
-        rlt->_fireTSR = nextFireTSR;
+	rlt->_fireTSR = nextFireTSR;
         rlt->_nextFireDate = fireDate;
         for (CFIndex idx = 0; idx < cnt; idx++) {
-            CFRunLoopModeRef rlm = (CFRunLoopModeRef)modes[idx];
+	    CFRunLoopModeRef rlm = (CFRunLoopModeRef)modes[idx];
             if (rlm) {
                 __CFRepositionTimerInMode(rlm, rlt, true);
             }
@@ -3973,13 +3783,13 @@ void CFRunLoopTimerSetNextFireDate(CFRunLoopTimerRef rlt, CFAbsoluteTime fireDat
         // code used to the older timer implementation.)
         if (rl != CFRunLoopGetCurrent()) CFRunLoopWakeUp(rl);
         CFRelease(rl);
-    } else {
+     } else {
         __CFRunLoopTimerFireTSRLock();
-        rlt->_fireTSR = nextFireTSR;
+	rlt->_fireTSR = nextFireTSR;
         rlt->_nextFireDate = fireDate;
         __CFRunLoopTimerFireTSRUnlock();
-        __CFRunLoopTimerUnlock(rlt);
-    }
+         __CFRunLoopTimerUnlock(rlt);
+     }
 }
 
 CFTimeInterval CFRunLoopTimerGetInterval(CFRunLoopTimerRef rlt) {
@@ -4010,14 +3820,14 @@ void CFRunLoopTimerInvalidate(CFRunLoopTimerRef rlt) {	/* DOES CALLOUT */
         CFRetain(rlt);
     }
     if (__CFIsValid(rlt)) {
-        CFRunLoopRef rl = rlt->_runLoop;
-        void *info = rlt->_context.info;
-        rlt->_context.info = NULL;
-        __CFUnsetValid(rlt);
-        if (NULL != rl) {
-            CFIndex cnt = CFSetGetCount(rlt->_rlModes);
-            STACK_BUFFER_DECL(CFStringRef, modes, cnt);
-            CFSetGetValues(rlt->_rlModes, (const void **)modes);
+	CFRunLoopRef rl = rlt->_runLoop;
+	void *info = rlt->_context.info;
+	rlt->_context.info = NULL;
+	__CFUnsetValid(rlt);
+	if (NULL != rl) {
+	    CFIndex cnt = CFSetGetCount(rlt->_rlModes);
+	    STACK_BUFFER_DECL(CFStringRef, modes, cnt);
+	    CFSetGetValues(rlt->_rlModes, (const void **)modes);
             // To avoid A->B, B->A lock ordering issues when coming up
             // towards the run loop from a source, the timer has to be
             // unlocked, which means we have to protect from object
@@ -4031,20 +3841,20 @@ void CFRunLoopTimerInvalidate(CFRunLoopTimerRef rlt) {	/* DOES CALLOUT */
             // needs that, but we also lock it out here to keep
             // changes from occurring for this whole sequence.
             __CFRunLoopLock(rl);
-            for (CFIndex idx = 0; idx < cnt; idx++) {
-                CFRunLoopRemoveTimer(rl, rlt, modes[idx]);
-            }
-            CFRunLoopRemoveTimer(rl, rlt, kCFRunLoopCommonModes);
+	    for (CFIndex idx = 0; idx < cnt; idx++) {
+		CFRunLoopRemoveTimer(rl, rlt, modes[idx]);
+	    }
+	    CFRunLoopRemoveTimer(rl, rlt, kCFRunLoopCommonModes);
             __CFRunLoopUnlock(rl);
             for (CFIndex idx = 0; idx < cnt; idx++) {
                 CFRelease(modes[idx]);
             }
             CFRelease(rl);
             __CFRunLoopTimerLock(rlt);
-        }
-        if (NULL != rlt->_context.release) {
-            rlt->_context.release(info);	/* CALLOUT */
-        }
+	}
+	if (NULL != rlt->_context.release) {
+	    rlt->_context.release(info);	/* CALLOUT */
+	}
     }
     __CFRunLoopTimerUnlock(rlt);
     if (!__CFRunLoopTimerIsDeallocating(rlt)) {
@@ -4052,8 +3862,6 @@ void CFRunLoopTimerInvalidate(CFRunLoopTimerRef rlt) {	/* DOES CALLOUT */
     }
 }
 
-//获取isvalid状态
-//true if timer is valid; otherwise false.
 Boolean CFRunLoopTimerIsValid(CFRunLoopTimerRef rlt) {
     CHECK_FOR_FORK();
     CF_OBJC_FUNCDISPATCHV(__kCFRunLoopTimerTypeID, Boolean, (NSTimer *)rlt, isValid);
