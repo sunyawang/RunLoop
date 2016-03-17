@@ -440,14 +440,27 @@ CF_INLINE AbsoluteTime __CFUInt64ToAbsoluteTime(uint64_t x) {
 }
 #endif
 
+/**
+ *  向指定端口发送一条消息
+ *  该函数只在CFRunLoopWakeUp函数中调用了一次
+ *
+ *  @param port    端口 ，传入的是rl->_wakeUpPort
+ *  @param msg_id  内核消息id，传入的是0
+ *  @param options 传入的是MACH_SEND_TIMEOUT
+ *  @param timeout 传入的是0
+ *
+ *  @return
+ */
 static uint32_t __CFSendTrivialMachMessage(mach_port_t port, uint32_t msg_id, CFOptionFlags options, uint32_t timeout) {
     kern_return_t result;
+    //构建内核消息
     mach_msg_header_t header;
     header.msgh_bits = MACH_MSGH_BITS(MACH_MSG_TYPE_COPY_SEND, 0);
     header.msgh_size = sizeof(mach_msg_header_t);
-    header.msgh_remote_port = port;
+    header.msgh_remote_port = port; //目标端口是_wakeUpPort
     header.msgh_local_port = MACH_PORT_NULL;
     header.msgh_id = msg_id;
+    //发送消息
     result = mach_msg(&header, MACH_SEND_MSG|options, header.msgh_size, 0, MACH_PORT_NULL, timeout, MACH_PORT_NULL);
     if (result == MACH_SEND_TIMED_OUT) mach_msg_destroy(&header);
     return result;
@@ -636,17 +649,17 @@ typedef struct _per_run_data {
 
 struct __CFRunLoop {
     CFRuntimeBase _base;
-    pthread_mutex_t _lock;			/* locked for accessing mode list */
-    __CFPort _wakeUpPort;			// used for CFRunLoopWakeUp 内核向该端口发送消息可以唤醒runloop
+    pthread_mutex_t _lock;  /* locked for accessing mode list */
+    __CFPort _wakeUpPort;	// used for CFRunLoopWakeUp 内核向该端口发送消息可以唤醒runloop
     Boolean _unused;
-    volatile _per_run_data *_perRunData;              // reset for runs of the run loop
-    pthread_t _pthread;
+    volatile _per_run_data *_perRunData; // reset for runs of the run loop
+    pthread_t _pthread;             //RunLoop对应的线程
     uint32_t _winthread;
-    CFMutableSetRef _commonModes;    //存储的是字符串
-    CFMutableSetRef _commonModeItems;
-    CFRunLoopModeRef _currentMode;
+    CFMutableSetRef _commonModes;    //存储的是字符串，记录所有标记为common的mode
+    CFMutableSetRef _commonModeItems;//存储所有commonMode的item(source、timer、observer)
+    CFRunLoopModeRef _currentMode;   //当前运行的mode
     CFMutableSetRef _modes;          //存储的是CFRunLoopModeRef
-    struct _block_item *_blocks_head;
+    struct _block_item *_blocks_head;//doblocks的时候用到
     struct _block_item *_blocks_tail;
     CFTypeRef _counterpart;
 };
@@ -683,29 +696,32 @@ CF_INLINE void __CFRunLoopUnsetStopped(CFRunLoopRef rl) {
     rl->_perRunData->stopped = 0x0;
 }
 
-//判断是否是唤醒状态，如果ignoreWakeUps指向0x0，则返回false
+//判断是否是不可以唤醒状态，如果ignoreWakeUps指向0x0，则返回false，表示当前可以被唤醒
 CF_INLINE Boolean __CFRunLoopIsIgnoringWakeUps(CFRunLoopRef rl) {
     return (rl->_perRunData->ignoreWakeUps) ? true : false;
 }
 
-//设置runloop为唤醒状态
+//设置runloop为不可以唤醒状态
 CF_INLINE void __CFRunLoopSetIgnoreWakeUps(CFRunLoopRef rl) {
     rl->_perRunData->ignoreWakeUps = 0x57414B45; // 'WAKE'
 }
 
-//设置为休眠状态
+//设置为可以被唤醒状态
 CF_INLINE void __CFRunLoopUnsetIgnoreWakeUps(CFRunLoopRef rl) {
     rl->_perRunData->ignoreWakeUps = 0x0;
 }
 
+//是否为休眠状态
 CF_INLINE Boolean __CFRunLoopIsSleeping(CFRunLoopRef rl) {
     return (Boolean)__CFBitfieldGetValue(((const CFRuntimeBase *)rl)->_cfinfo[CF_INFO_BITS], 1, 1);
 }
 
+//设置为休眠状态
 CF_INLINE void __CFRunLoopSetSleeping(CFRunLoopRef rl) {
     __CFBitfieldSetValue(((CFRuntimeBase *)rl)->_cfinfo[CF_INFO_BITS], 1, 1, 1);
 }
 
+//取消休眠状态
 CF_INLINE void __CFRunLoopUnsetSleeping(CFRunLoopRef rl) {
     __CFBitfieldSetValue(((CFRuntimeBase *)rl)->_cfinfo[CF_INFO_BITS], 1, 1, 0);
 }
@@ -972,14 +988,17 @@ struct __CFRunLoopSource {
 
 /* Bit 1 of the base reserved bits is used for signalled state */
 
+//Source是否被标记为Signaled
 CF_INLINE Boolean __CFRunLoopSourceIsSignaled(CFRunLoopSourceRef rls) {
     return (Boolean)__CFBitfieldGetValue(rls->_bits, 1, 1);
 }
 
+//标记为Signaled
 CF_INLINE void __CFRunLoopSourceSetSignaled(CFRunLoopSourceRef rls) {
     __CFBitfieldSetValue(rls->_bits, 1, 1, 1);
 }
 
+//取消Signaled标记
 CF_INLINE void __CFRunLoopSourceUnsetSignaled(CFRunLoopSourceRef rls) {
     __CFBitfieldSetValue(rls->_bits, 1, 1, 0);
 }
@@ -1413,7 +1432,6 @@ CF_EXPORT CFRunLoopRef _CFRunLoopGet0(pthread_t t) {
         __CFSpinLock(&loopsLock);
     }
     //以上说明，第一次进来的时候，不管是getMainRunloop还是get子线程的runloop，主线程的runloop总是会被创建
-    
     //从字典__CFRunLoops中获取传入线程t的runloop
     CFRunLoopRef loop = (CFRunLoopRef)CFDictionaryGetValue(__CFRunLoops, pthreadPointer(t));
     __CFSpinUnlock(&loopsLock);
@@ -1753,17 +1771,18 @@ static void __CFRunLoopDoObservers(CFRunLoopRef rl, CFRunLoopModeRef rlm, CFRunL
     //如果_observers为空则直接返回
     if (cnt < 1) return;
     
+    //STACK_BUFFER_DECL等同于下面代码
+    //    if (cnt <= 1024) {
+    //        CFRunLoopObserverRef buffer[cnt];
+    //    } else {
+    //        CFRunLoopObserverRef buffer[1];
+    //    }
     /* Fire the observers */
     STACK_BUFFER_DECL(CFRunLoopObserverRef, buffer, (cnt <= 1024) ? cnt : 1);
-    //上一行等同于下面代码
-//    if (cnt <= 1024) {
-//        CFRunLoopObserverRef buffer[cnt];
-//    } else {
-//        CFRunLoopObserverRef buffer[1];
-//    }
+  
     CFRunLoopObserverRef *collectedObservers = (cnt <= 1024) ? buffer : (CFRunLoopObserverRef *)malloc(cnt * sizeof(CFRunLoopObserverRef));
     CFIndex obs_cnt = 0;
-    //便利mode的_observers，取出没有firing的observer
+    //遍历mode的_observers，取出没有firing的observer
     for (CFIndex idx = 0; idx < cnt; idx++) {
         CFRunLoopObserverRef rlo = (CFRunLoopObserverRef)CFArrayGetValueAtIndex(rlm->_observers, idx);
         if (0 != (rlo->_activities & activity) && __CFIsValid(rlo) && !__CFRunLoopObserverIsFiring(rlo)) {
@@ -1806,22 +1825,39 @@ static CFComparisonResult __CFRunLoopSourceComparator(const void *val1, const vo
     return kCFCompareEqualTo;
 }
 
-//TODO 暂未搞懂
+
+/**
+ *  针对Source0的操作
+ *  如果context的类型是一个数组，则把value加入到context数组里
+ *  如果context的类型是RunLoopSource，则初始化一个数组，并把context和value都加入到数组里
+ *  如果context是NULL，则对value做retain操作
+ *
+ *  @param value   RunLoopSource，source0
+ *  @param context 调用时传入的是sources
+ */
 static void __CFRunLoopCollectSources0(const void *value, void *context) {
+    //传入的value赋值给rls变量
     CFRunLoopSourceRef rls = (CFRunLoopSourceRef)value;
+    //传入的context赋值给sources变量
     CFTypeRef *sources = (CFTypeRef *)context;
     
-    //如果version0的version不为0并且
+    //如果rls是Source0 && 为有效状态 && 被标记为Signaled
     if (0 == rls->_context.version0.version && __CFIsValid(rls) && __CFRunLoopSourceIsSignaled(rls)) {
         if (NULL == *sources) {
             *sources = CFRetain(rls);
-        } else if (CFGetTypeID(*sources) == __kCFRunLoopSourceTypeID) {
+        }
+        //如果sources是CFRunLoopSourceRef
+        else if (CFGetTypeID(*sources) == __kCFRunLoopSourceTypeID) {
+            //创建临时变量oldrls，并赋值为sources
             CFTypeRef oldrls = *sources;
+            //sources初始化为数组
             *sources = CFArrayCreateMutable(kCFAllocatorSystemDefault, 0, &kCFTypeArrayCallBacks);
+            //把oldrls和rls都加入到sources中
             CFArrayAppendValue((CFMutableArrayRef)*sources, oldrls);
             CFArrayAppendValue((CFMutableArrayRef)*sources, rls);
             CFRelease(oldrls);
         } else {
+            //把rls加入到sources中
             CFArrayAppendValue((CFMutableArrayRef)*sources, rls);
         }
     }
@@ -1860,12 +1896,14 @@ static Boolean __CFRunLoopDoSources0(CFRunLoopRef rl, CFRunLoopModeRef rlm, Bool
 static Boolean __CFRunLoopDoSources0(CFRunLoopRef rl, CFRunLoopModeRef rlm, Boolean stopAfterHandle) {	/* DOES CALLOUT */
     CHECK_FOR_FORK();
     CFTypeRef sources = NULL;
-    Boolean sourceHandled = false; //是否执行了函数
+    //是否执行了函数
+    Boolean sourceHandled = false;
     
     /* Fire the version 0 sources */
     //如果数组_sources0存在 并且 包含元素个数大于0
     if (NULL != rlm->_sources0 && 0 < CFSetGetCount(rlm->_sources0)) {
         //让数组_sources0中的每一个元素都执行一次__CFRunLoopCollectSources0
+        //sources作为__CFRunLoopCollectSources0的第二个参数
         CFSetApplyFunction(rlm->_sources0, (__CFRunLoopCollectSources0), &sources);
     }
     if (NULL != sources) {
@@ -1877,12 +1915,12 @@ static Boolean __CFRunLoopDoSources0(CFRunLoopRef rl, CFRunLoopModeRef rlm, Bool
         if (CFGetTypeID(sources) == __kCFRunLoopSourceTypeID) {
             CFRunLoopSourceRef rls = (CFRunLoopSourceRef)sources;
             __CFRunLoopSourceLock(rls);
-            //只有source属于Signale状态 才处理事件
+            //只有被标记为Signaled状态的source0，才被处理
             if (__CFRunLoopSourceIsSignaled(rls)) {
                 __CFRunLoopSourceUnsetSignaled(rls);
                 if (__CFIsValid(rls)) {
                     __CFRunLoopSourceUnlock(rls);
-                    //执行perform
+                    //执行Source0回调
                     __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__(rls->_context.version0.perform, rls->_context.version0.info);
                     CHECK_FOR_FORK();
                     sourceHandled = true;
@@ -1892,19 +1930,21 @@ static Boolean __CFRunLoopDoSources0(CFRunLoopRef rl, CFRunLoopModeRef rlm, Bool
             } else {
                 __CFRunLoopSourceUnlock(rls);
             }
-        } else {
+        }
+        //如果sources是数组
+        else {
             CFIndex cnt = CFArrayGetCount((CFArrayRef)sources);
             CFArraySortValues((CFMutableArrayRef)sources, CFRangeMake(0, cnt), (__CFRunLoopSourceComparator), NULL);
             //遍历sources
             for (CFIndex idx = 0; idx < cnt; idx++) {
                 CFRunLoopSourceRef rls = (CFRunLoopSourceRef)CFArrayGetValueAtIndex((CFArrayRef)sources, idx);
                 __CFRunLoopSourceLock(rls);
-                //只有source属于Signale状态 才处理事件
+                //只有被标记为Signaled状态的source0，才被处理
                 if (__CFRunLoopSourceIsSignaled(rls)) {
                     __CFRunLoopSourceUnsetSignaled(rls);
                     if (__CFIsValid(rls)) {
                         __CFRunLoopSourceUnlock(rls);
-                        //执行perform
+                        //执行Source0回调
                         __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__(rls->_context.version0.perform, rls->_context.version0.info);
                         CHECK_FOR_FORK();
                         sourceHandled = true;
@@ -2456,6 +2496,7 @@ static int32_t __CFRunLoopRun(CFRunLoopRef rl, CFRunLoopModeRef rlm, CFTimeInter
     //获取系统启动后的CPU运行时间，用于控制超时时间
     uint64_t startTSR = mach_absolute_time();
     
+    //如果RunLoop或者mode是stop状态，则直接return，不进入循环
     if (__CFRunLoopIsStopped(rl)) {
         __CFRunLoopUnsetStopped(rl);
         return kCFRunLoopRunStopped;
@@ -2528,16 +2569,18 @@ static int32_t __CFRunLoopRun(CFRunLoopRef rl, CFRunLoopModeRef rlm, CFTimeInter
         //取所有需要监听的port
         __CFPortSet waitSet = rlm->_portSet;
         
+        //设置RunLoop为可以被唤醒状态
         __CFRunLoopUnsetIgnoreWakeUps(rl);
         
-        //通知observer，即将触发timer回调，处理timer事件
+        //2.通知observer，即将触发timer回调，处理timer事件
         if (rlm->_observerMask & kCFRunLoopBeforeTimers) __CFRunLoopDoObservers(rl, rlm, kCFRunLoopBeforeTimers);
-        //通知observer，即将触发Source0回调
+        //3.通知observer，即将触发Source0回调
         if (rlm->_observerMask & kCFRunLoopBeforeSources) __CFRunLoopDoObservers(rl, rlm, kCFRunLoopBeforeSources);
         
         //执行加入当前runloop的block
         __CFRunLoopDoBlocks(rl, rlm);
         
+        //4.处理source0事件
         //有事件处理返回true，没有事件返回false
         Boolean sourceHandledThisLoop = __CFRunLoopDoSources0(rl, rlm, stopAfterHandle);
         if (sourceHandledThisLoop) {
@@ -2554,8 +2597,9 @@ static int32_t __CFRunLoopRun(CFRunLoopRef rl, CFRunLoopModeRef rlm, CFTimeInter
 #if DEPLOYMENT_TARGET_MACOSX || DEPLOYMENT_TARGET_EMBEDDED || DEPLOYMENT_TARGET_EMBEDDED_MINI
             //从缓冲区读取消息
             msg = (mach_msg_header_t *)msg_buffer;
-            //接收dispatchPort端口的消息，
+            //接收dispatchPort端口的消息，（接收source1事件）
             if (__CFRunLoopServiceMachPort(dispatchPort, &msg, sizeof(msg_buffer), &livePort, 0)) {
+                //如果接收到了消息的话，开始处理msg
                 goto handle_msg;
             }
 #elif DEPLOYMENT_TARGET_WINDOWS
@@ -2565,11 +2609,11 @@ static int32_t __CFRunLoopRun(CFRunLoopRef rl, CFRunLoopModeRef rlm, CFTimeInter
 #endif
         }
         
-        //
         didDispatchPortLastTime = false;
         
-        //如果
+        //6.通知观察者RunLoop即将进入休眠
         if (!poll && (rlm->_observerMask & kCFRunLoopBeforeWaiting)) __CFRunLoopDoObservers(rl, rlm, kCFRunLoopBeforeWaiting);
+        //设置RunLoop为休眠状态
         __CFRunLoopSetSleeping(rl);
         // do not do any user callouts after this point (after notifying of sleeping)
         
@@ -2590,6 +2634,7 @@ static int32_t __CFRunLoopRun(CFRunLoopRef rl, CFRunLoopModeRef rlm, CFTimeInter
                 memset(msg_buffer, 0, sizeof(msg_buffer));
             }
             msg = (mach_msg_header_t *)msg_buffer;
+            //接收waitSet端口的消息
             __CFRunLoopServiceMachPort(waitSet, &msg, sizeof(msg_buffer), &livePort, poll ? 0 : TIMEOUT_INFINITY);
             
             if (modeQueuePort != MACH_PORT_NULL && livePort == modeQueuePort) {
@@ -2632,10 +2677,13 @@ static int32_t __CFRunLoopRun(CFRunLoopRef rl, CFRunLoopModeRef rlm, CFTimeInter
         
         __CFPortSetRemove(dispatchPort, waitSet);
         
+
         __CFRunLoopSetIgnoreWakeUps(rl);
         
         // user callouts now OK again
+        //取消runloop的休眠状态
         __CFRunLoopUnsetSleeping(rl);
+        //通知观察者runloop被唤醒
         if (!poll && (rlm->_observerMask & kCFRunLoopAfterWaiting)) __CFRunLoopDoObservers(rl, rlm, kCFRunLoopAfterWaiting);
       
         //处理消息
@@ -2801,6 +2849,7 @@ SInt32 CFRunLoopRunSpecific(CFRunLoopRef rl, CFStringRef modeName, CFTimeInterva
     //初始化一个result为kCFRunLoopRunFinished
     int32_t result = kCFRunLoopRunFinished;
     
+    // 1.通知observer即将进入runloop
     if (currentMode->_observerMask & kCFRunLoopEntry ) __CFRunLoopDoObservers(rl, currentMode, kCFRunLoopEntry);
     result = __CFRunLoopRun(rl, currentMode, seconds, returnAfterSourceHandled, previousMode);
     if (currentMode->_observerMask & kCFRunLoopExit ) __CFRunLoopDoObservers(rl, currentMode, kCFRunLoopExit);
@@ -2851,7 +2900,7 @@ void CFRunLoopWakeUp(CFRunLoopRef rl) {
     CHECK_FOR_FORK();
     // This lock is crucial to ignorable wakeups, do not remove it.
     __CFRunLoopLock(rl);
-    //如果runloop已经是唤醒状态，则不处理
+    //如果RunLoop为不可以唤醒状态，则不处理
     if (__CFRunLoopIsIgnoringWakeUps(rl)) {
         __CFRunLoopUnlock(rl);
         return;
@@ -2861,7 +2910,7 @@ void CFRunLoopWakeUp(CFRunLoopRef rl) {
     /* We unconditionally try to send the message, since we don't want
      * to lose a wakeup, but the send may fail if there is already a
      * wakeup pending, since the queue length is 1. */
-    //大概理解：内核向runloop的_wakeUpPort发送消息，来唤醒runloop继续执行do while循环
+    //内核向RunLoop的_wakeUpPort端口发送消息，以唤醒RunLoop继续执行do while循环
     ret = __CFSendTrivialMachMessage(rl->_wakeUpPort, 0, MACH_SEND_TIMEOUT, 0);
     if (ret != MACH_MSG_SUCCESS && ret != MACH_SEND_TIMED_OUT) CRASH("*** Unable to send message to wake up port. (%d) ***", ret);
 #elif DEPLOYMENT_TARGET_WINDOWS
